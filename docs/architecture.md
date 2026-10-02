@@ -71,39 +71,61 @@ SkillSwap Project/
 │   └── architecture.md
 ├── backend/
 │   ├── src/
-│   │   ├── config/
-│   │   ├── middleware/
+│   │   ├── db/
+│   │   │   └── index.js
+│   │   ├── constants/
+│   │   │   ├── enums.js
+│   │   │   └── errorCodes.js
 │   │   ├── models/
+│   │   │   └── user.model.js
 │   │   ├── modules/
 │   │   │   ├── auth/
-│   │   │   ├── users/
-│   │   │   ├── skills/
-│   │   │   ├── discovery/
-│   │   │   ├── matches/
-│   │   │   ├── availability/
-│   │   │   ├── sessions/
-│   │   │   ├── credits/
-│   │   │   ├── recurring/
-│   │   │   ├── messages/
-│   │   │   ├── reviews/
-│   │   │   ├── reports/
-│   │   │   ├── notifications/
-│   │   │   ├── admin/
-│   │   │   └── ai/
-│   │   ├── jobs/
-│   │   ├── realtime/
+│   │   │   │   ├── auth.controller.js
+│   │   │   │   ├── auth.routes.js
+│   │   │   │   ├── auth.service.js
+│   │   │   │   └── auth.validation.js
+│   │   │   └── users/
+│   │   │       ├── user.controller.js
+│   │   │       ├── user.routes.js
+│   │   │       ├── user.service.js
+│   │   │       └── user.validation.js
+│   │   ├── middlewares/
+│   │   │   ├── accountType.middleware.js
+│   │   │   ├── auth.middleware.js
+│   │   │   ├── error.middleware.js
+│   │   │   ├── notFound.middleware.js
+│   │   │   └── role.middleware.js
+│   │   ├── utils/
+│   │   │   ├── ApiError.js
+│   │   │   ├── ApiResponse.js
+│   │   │   ├── asyncHandler.js
+│   │   │   ├── cookieOptions.js
+│   │   │   └── token.js
 │   │   ├── app.js
-│   │   └── server.js
-│   └── tests/
+│   │   ├── constants.js
+│   │   └── index.js
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   ├── auth.validation.test.js
+│   │   │   ├── token.test.js
+│   │   │   └── user.model.test.js
+│   │   ├── integration/
+│   │   │   ├── currentUser.test.js
+│   │   │   ├── login.test.js
+│   │   │   ├── logout.test.js
+│   │   │   ├── refresh.test.js
+│   │   │   └── register.test.js
+│   │   └── helpers/
+│   │       ├── authHeader.js
+│   │       ├── cleanupTestData.js
+│   │       └── createTestUser.js
+│   ├── .env
+│   ├── .gitignore
+│   ├── .prettierignore
+│   ├── .prettierrc.json
+│   ├── package-lock.json
+│   └── package.json
 └── frontend/
-    └── src/
-        ├── api/
-        ├── auth/
-        ├── components/
-        ├── features/
-        ├── pages/
-        ├── realtime/
-        └── routes/
 ```
 
 Within a backend module, use a consistent direction such as route -> controller -> service -> model/repository. Controllers should handle HTTP concerns; services should own authorization, state changes, transactions, and business rules.
@@ -173,10 +195,10 @@ The architecture contains exactly 14 collections. Do not add another collection 
 | # | Logical collection | Responsibility |
 |---:|---|---|
 | 1 | User | Identity, role, account type, languages, teaching profile, rating, connection count, and balances |
-| 2 | Skill | Predefined skill catalog |
-| 3 | SkillRequest | User requests for admin-approved catalog additions |
+| 2 | Skill | Predefined skill catalog organized by predefined categories |
+| 3 | SkillRequest | User requests for missing skills to be considered for admin-approved catalog additions |
 | 4 | Match | Connection request and relationship state between two users |
-| 5 | Availability | A teaching user's weekly availability |
+| 5 | Availability | A user's shared weekly availability for their permitted teaching and/or learning activities |
 | 6 | Session | Regular and demo bookings, completion state, pricing, and recurring occurrences |
 | 7 | CreditTransaction | Auditable credit movements |
 | 8 | RecurringSchedule | Accepted recurring arrangement and occurrence template |
@@ -194,6 +216,7 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 - `User.accountType` supports `TEACHER`, `TEACHER_LEARNER`, and `LEARNER`.
 - `User.teachingStyles` is an array, allowing teachers to select multiple predefined enum values: `STEP_BY_STEP`, `HANDS_ON`, `CONCEPT_FOCUSED`, `PROJECT_BASED`, `INTERACTIVE`, and `VISUAL`.
 - `User.languages` is an array of predefined enum values: `ENGLISH`, `HINDI`, `BENGALI`, `TELUGU`, `MARATHI`, `TAMIL`, `GUJARATI`, `KANNADA`, `MALAYALAM`, and `PUNJABI`. It belongs to the existing User collection; do not create a Language collection.
+- `Skill.category` is a required predefined category enum value. Category names and the Skills within each category come from the predefined hardcoded catalog.
 - `Message.messageType` supports `TEXT` and `AI_SUMMARY`, defaulting to `TEXT`.
 - `Session.sessionType` supports `REGULAR` and `DEMO`, defaulting to `REGULAR`.
 - `RecurringSchedule.credits` stores the agreed credits per generated occurrence.
@@ -202,7 +225,9 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 
 ### Important collection relationships
 
-- A User can offer many Skills through `User.teachingSkills`. There is no `learningSkills` field.
+- A User can offer many predefined Skills through `User.teachingSkills`. There is no `learningSkills` field, and category names are not duplicated on User.
+- Each Skill belongs to one predefined category. Categories do not create a separate collection.
+- Availability records belong to one User and form that user's single shared weekly schedule. A `TEACHER_LEARNER` uses the same schedule for both teaching and learning; do not add separate teaching/learning schedules or duplicate availability fields on User.
 - A Match connects two users and is independent of skill.
 - A Match can contain many Sessions.
 - A Session references one Match, teacher, learner, and Skill; it may also reference one RecurringSchedule.
@@ -243,6 +268,10 @@ Finalize enum values and query shapes before migration, then create indexes for 
 
 A teaching-capable account must provide at least one teaching skill and the required teaching-style data. A learner may later upgrade to a teaching-capable account after supplying that information.
 
+Every account type can manage one weekly availability schedule. A `LEARNER` uses it for learning, a `TEACHER` uses it for teaching, and a `TEACHER_LEARNER` uses the same schedule for both.
+
+During registration and teaching-account upgrades, show the predefined categories and the predefined Skills within each category. Users select existing Skills from this catalog; if a Skill is missing, they submit a SkillRequest instead of creating or entering an arbitrary Skill directly.
+
 ### Teacher discovery
 
 1. Validate that the requester can learn.
@@ -275,7 +304,7 @@ The core Match states include pending, accepted, removed, rejected where support
 2. Confirm the teacher and learner are the Match participants.
 3. Confirm their account types permit their assigned roles.
 4. Confirm the teacher offers the selected Skill.
-5. Validate the requested time against availability and the product timezone.
+5. Validate the requested time against both participants' shared availability and the product timezone.
 6. Allow overlapping `PENDING` requests.
 7. On acceptance, check conflicts for both participants.
 8. Reject conflicting pending requests after one request is accepted.
@@ -358,10 +387,10 @@ Use a versioned prefix such as `/api/v1`. Final endpoint names can change, but t
 |---|---|
 | Auth | register, login, refresh, logout, current user |
 | Users | profile read/update, account upgrade, teaching profile |
-| Skills | catalog browse; admin catalog management |
+| Skills | predefined catalog browse grouped by category; admin catalog management |
 | Skill requests | create, list own; admin approve/reject |
 | Discovery | teacher search by skill, optional teaching style, common language, pagination |
-| Availability | manage own weekly slots; read teacher availability |
+| Availability | manage own shared weekly slots; read teacher availability |
 | Matches | request, accept/reject, remove, block/unblock, list |
 | Sessions | request, accept/reject, cancel, list/detail, confirmations, dispute |
 | Admin sessions | review queue, evidence workflow, final resolution |
@@ -442,15 +471,15 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 **Backend work**
 
-- Implement Skill and SkillRequest with admin approval/rejection.
+- Implement the predefined categorized Skill catalog and SkillRequest with  admin approval/rejection.
 - Implement teaching-profile reads and updates using predefined Skill references.
-- Implement Availability CRUD for teaching-capable users.
+- Implement Availability CRUD for all users using one shared weekly schedule per user.
 - Implement teacher discovery with strict Skill, optional teaching-style, and common-language filtering before weighted compatibility scoring and ordering.
 - Add pagination, safe public profile projection, and discovery indexes.
 
 **Frontend work**
 
-- Skill catalog and skill-request UI.
+- Predefined Skill catalog grouped by category and skill-request UI.
 - Teacher-profile editor and public teacher profile.
 - Weekly availability editor.
 - Teacher search with Skill and optional teaching-style filters, using the learner's languages for common-language eligibility.
