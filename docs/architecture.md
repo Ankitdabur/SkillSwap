@@ -159,7 +159,19 @@ Within a backend module, use a consistent direction such as route -> controller 
 
 ### Validation and error handling
 
-- Use manual request-shape validation at the API boundary without Zod, Joi, express-validator, or another validation library; keep business-rule validation separate in services.
+- Use manual request-shape validation at the API boundary without Zod, Joi, express-validator, or another validation library. Registration request-shape and basic input validation belongs in `auth.validation.js`; database-dependent and business validation belongs in `auth.service.js`; Mongoose schema validation remains the persistence safety layer.
+- Registration uses a strict request contract. Reject unknown fields rather than silently ignoring them, including client-supplied server-controlled or internal fields such as `role`, credits or balances, `rating`, `totalReviews`, `connections`, refresh-token data, or similar internal state.
+- Apply these finalized registration field rules:
+  - `fullname` is required, is trimmed, must be 2–60 characters long, and may contain normal letters, spaces, hyphens, and apostrophes.
+  - `username` is required, must be 3–30 characters long, and may contain only lowercase letters, numbers, and underscores. Reject uppercase usernames; do not lowercase or otherwise silently modify them.
+  - `email` is required, must have a valid email format, is trimmed, and is normalized to lowercase before storage or comparison.
+  - `password` is required, must be at least 8 characters long, and must contain at least one uppercase letter, one lowercase letter, one number, and one special character. No maximum password length is currently defined.
+  - `accountType` is required and must be `TEACHER`, `TEACHER_LEARNER`, or `LEARNER`.
+  - `languages` is required for every account type and must be a non-empty array containing only finalized `LANGUAGES` enum values.
+  - For `TEACHER` and `TEACHER_LEARNER`, `teachingSkills` and `teachingStyles` are required non-empty arrays. Every teaching Skill ID must have a valid MongoDB ObjectId shape, and every teaching style must be a finalized `TEACHING_STYLES` enum value. `auth.service.js` must query the predefined Skill catalog and confirm that every referenced Skill exists.
+  - A `LEARNER` must not send `teachingSkills` or `teachingStyles`; reject the request if either field is supplied.
+- Reject duplicate values in `languages`, `teachingStyles`, and `teachingSkills`; validation must not silently deduplicate client input.
+- An avatar is optional during registration. If provided, it must use the Multer/Cloudinary file-upload flow; do not accept an arbitrary avatar URL or string in the registration body. File type, size, and other upload-specific validation belongs in upload middleware rather than `auth.validation.js`.
 - Continue using the existing `ApiResponse` pattern for successful responses:
 
 ```json
@@ -214,9 +226,9 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 ### Required corrections to the ER diagram
 
 - `User.accountType` supports `TEACHER`, `TEACHER_LEARNER`, and `LEARNER`.
-- `User.teachingStyles` is an array, allowing teachers to select multiple predefined enum values: `STEP_BY_STEP`, `HANDS_ON`, `CONCEPT_FOCUSED`, `PROJECT_BASED`, `INTERACTIVE`, and `VISUAL`.
+- `User.teachingStyles` is an array, allowing teachers to select multiple predefined enum values: `STEP_BY_STEP`, `HANDS_ON`, `CONCEPT_FOCUSED`, `PROJECT_BASED`, `INTERACTIVE`, `VISUAL`, and `NOT_SURE`.
 - `User.languages` is an array of predefined enum values: `ENGLISH`, `HINDI`, `BENGALI`, `TELUGU`, `MARATHI`, `TAMIL`, `GUJARATI`, `KANNADA`, `MALAYALAM`, and `PUNJABI`. It belongs to the existing User collection; do not create a Language collection.
-- `Skill.category` is a required predefined category enum value. Category names and the Skills within each category come from the predefined hardcoded catalog.
+- `Skill.category` is a required predefined `SKILL_CATEGORIES` enum value. The categories remain hardcoded backend enum/constants; they are not seeded into MongoDB and do not create a Category collection.
 - `Message.messageType` supports `TEXT` and `AI_SUMMARY`, defaulting to `TEXT`.
 - `Session.sessionType` supports `REGULAR` and `DEMO`, defaulting to `REGULAR`.
 - `RecurringSchedule.credits` stores the agreed credits per generated occurrence.
@@ -266,11 +278,11 @@ Finalize enum values and query shapes before migration, then create indexes for 
 | `TEACHER_LEARNER` | Yes | Yes |
 | `LEARNER` | No | Yes |
 
-A teaching-capable account must provide at least one teaching skill and the required teaching-style data. A learner may later upgrade to a teaching-capable account after supplying that information.
+A teaching-capable account must provide at least one teaching skill and at least one teaching style. A learner must not supply teaching fields during registration and may later upgrade to a teaching-capable account after supplying the required teaching information.
 
 Every account type can manage one weekly availability schedule. A `LEARNER` uses it for learning, a `TEACHER` uses it for teaching, and a `TEACHER_LEARNER` uses the same schedule for both.
 
-During registration and teaching-account upgrades, show the predefined categories and the predefined Skills within each category. Users select existing Skills from this catalog; if a Skill is missing, they submit a SkillRequest instead of creating or entering an arbitrary Skill directly.
+During registration and teaching-account upgrades, show the predefined categories and the predefined Skills within each category. Users select existing Skills from this catalog rather than creating or entering an arbitrary Skill directly. When SkillRequest functionality is implemented in Phase 2, a user may submit a request for a missing Skill.
 
 ### Teacher discovery
 
@@ -448,6 +460,10 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 - Initialize the Node/Express application, configuration validation, MongoDB connection, logging, and graceful shutdown.
 - Add the User model, password hashing, registration, login, refresh, logout, and current-user endpoint.
+- Add only the minimum Skill model and predefined-catalog functionality needed for registration and learner-to-teaching-account upgrades to reference existing Skill ObjectIds.
+  - Maintain the initial predefined Skill data as backend-controlled seed data. Each seed entry contains only `name`, `category`, and `description`; MongoDB/Mongoose generates `_id`, `createdAt`, and `updatedAt`, and every `category` must be a predefined `SKILL_CATEGORIES` value.
+  - Use a dedicated seed script to insert or upsert these documents into the existing Skill collection. Run it intentionally during database setup, not automatically on every application startup, and do not manually create the initial Skill documents one by one in MongoDB.
+  - Once seeded, Skill documents remain persistent MongoDB data. The original seed file initializes the catalog but is not the permanent source of truth after runtime-created or admin-approved Skills exist; MongoDB remains the persistent source of truth.
 - Add reusable authentication, role, account-type, validation, and error middleware.
 - Enforce teaching fields for teaching-capable accounts and support learner-to-teacher account upgrades.
 - Add unit and integration test foundations.
@@ -471,7 +487,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 **Backend work**
 
-- Implement the predefined categorized Skill catalog and SkillRequest with  admin approval/rejection.
+- Complete the predefined categorized Skill catalog management and implement SkillRequest with admin approval/rejection; approved requests may create additional Skill documents beyond the original seeded catalog.
 - Implement teaching-profile reads and updates using predefined Skill references.
 - Implement Availability CRUD for all users using one shared weekly schedule per user.
 - Implement teacher discovery with strict Skill, optional teaching-style, and common-language filtering before weighted compatibility scoring and ordering.

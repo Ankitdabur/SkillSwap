@@ -2,6 +2,8 @@ import express from "express"
 import cookieparser from "cookie-parser"
 import cors from "cors"
 import { errorHandler } from "./middlewares/error.middleware.js"
+import { notFound } from "./middlewares/notFound.middleware.js"
+
 const app = express()
 
 app.use(cors(
@@ -18,7 +20,7 @@ app.use(cookieparser())
 
 
 //not found middleware
-
+app.use(notFound)
 
 //errhandler
 app.use(errorHandler)
