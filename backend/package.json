@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "nodemon -r dotenv/config src/index.js",
-    "start": "node -r dotenv/config src/index.js"
+    "start": "node -r dotenv/config src/index.js",
+    "seed:skills": "node -r dotenv/config src/seeds/skill.seed.js"
   },
   "keywords": [],
   "author": "",
