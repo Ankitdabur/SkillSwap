@@ -395,9 +395,7 @@ const validateRegister = (req, _res, next) => {
           );
         }
 
-        const allSkillIdsAreStrings = teachingSkills.every(
-          (skillId) => typeof skillId === "string",
-        );
+       
 
         if(!hasInvalidSkillId){
         if (
