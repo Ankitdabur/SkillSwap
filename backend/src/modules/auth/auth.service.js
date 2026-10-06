@@ -148,5 +148,6 @@ const registerUserService = async (userData , avatarLocalPath) => {
   return createdUser;
 };
 
+
 export { registerUserService };
 

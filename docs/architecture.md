@@ -228,6 +228,9 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 - `User.accountType` supports `TEACHER`, `TEACHER_LEARNER`, and `LEARNER`.
 - `User.teachingStyles` is an array, allowing teachers to select multiple predefined enum values: `STEP_BY_STEP`, `HANDS_ON`, `CONCEPT_FOCUSED`, `PROJECT_BASED`, `INTERACTIVE`, `VISUAL`, and `NOT_SURE`.
 - `User.languages` is an array of predefined enum values: `ENGLISH`, `HINDI`, `BENGALI`, `TELUGU`, `MARATHI`, `TAMIL`, `GUJARATI`, `KANNADA`, `MALAYALAM`, and `PUNJABI`. It belongs to the existing User collection; do not create a Language collection.
+- A Skill contains `name`, `displayName`, `category`, and `description`, plus MongoDB/Mongoose-generated `_id`, `createdAt`, and `updatedAt` fields.
+- `Skill.name` is the canonical/internal name. Store it in lowercase and use it for uniqueness and normalized lookup/comparison. For example, both `"JavaScript"` and `"JAVASCRIPT"` normalize to `name: "javascript"`, so different casing cannot create duplicate Skills. Because normalization occurs before storage, a normal unique index on `name` is sufficient; a case-insensitive collation is not required.
+- `Skill.displayName` is the authoritative, properly formatted name shown to users. For example, `name: "javascript"` uses `displayName: "JavaScript"`, `name: "node.js"` uses `displayName: "Node.js"`, and `name: "power bi"` uses `displayName: "Power BI"`. The frontend must display `displayName` rather than reconstructing formatting from `name`: generic capitalization cannot reliably reproduce names such as JavaScript, Node.js, Power BI, HTML, or UI/UX Design.
 - `Skill.category` is a required predefined `SKILL_CATEGORIES` enum value. The categories remain hardcoded backend enum/constants; they are not seeded into MongoDB and do not create a Category collection.
 - `Message.messageType` supports `TEXT` and `AI_SUMMARY`, defaulting to `TEXT`.
 - `Session.sessionType` supports `REGULAR` and `DEMO`, defaulting to `REGULAR`.
@@ -254,7 +257,7 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 Finalize enum values and query shapes before migration, then create indexes for at least:
 
 - User: unique email and unique username; teaching skills, teaching styles, and languages for discovery.
-- Skill: unique skill name using the selected case-sensitivity policy.
+- Skill: normal unique index on the lowercase canonical `name`; do not create duplicate Skills that differ only by case. A case-insensitive collation is not required because `name` is normalized before storage.
 - SkillRequest: status and creation time; requestedBy and creation time.
 - Match: sender/receiver/status queries in both participant directions.
 - Availability: user and day.
@@ -461,7 +464,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 - Initialize the Node/Express application, configuration validation, MongoDB connection, logging, and graceful shutdown.
 - Add the User model, password hashing, registration, login, refresh, logout, and current-user endpoint.
 - Add only the minimum Skill model and predefined-catalog functionality needed for registration and learner-to-teaching-account upgrades to reference existing Skill ObjectIds.
-  - Maintain the initial predefined Skill data as backend-controlled seed data. Each seed entry contains only `name`, `category`, and `description`; MongoDB/Mongoose generates `_id`, `createdAt`, and `updatedAt`, and every `category` must be a predefined `SKILL_CATEGORIES` value.
+  - Maintain the initial predefined Skill data as backend-controlled seed data. Each seed entry contains only `name`, `displayName`, `category`, and `description`. Store `name` in lowercase as the canonical value and preserve the intended human-readable casing and formatting in `displayName`. MongoDB/Mongoose generates `_id`, `createdAt`, and `updatedAt`, and every `category` must be a predefined `SKILL_CATEGORIES` value.
   - Use a dedicated seed script to insert or upsert these documents into the existing Skill collection. Run it intentionally during database setup, not automatically on every application startup, and do not manually create the initial Skill documents one by one in MongoDB.
   - Once seeded, Skill documents remain persistent MongoDB data. The original seed file initializes the catalog but is not the permanent source of truth after runtime-created or admin-approved Skills exist; MongoDB remains the persistent source of truth.
 - Add reusable authentication, role, account-type, validation, and error middleware.
