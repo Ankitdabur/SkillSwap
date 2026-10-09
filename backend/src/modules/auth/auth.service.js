@@ -133,9 +133,12 @@ const registerUserService = async (userData , avatarLocalPath) => {
 
   // get safe user data
 
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshTokenHash",
-  );
+  //unnecessary...beacuse in user model select => false
+  //const createdUser = await User.findById(user._id).select(
+  //  "-password -refreshTokenHash",
+  //);
+
+  const createdUser = await User.findById(user._id)
 
   if (!createdUser) {
     throw new ApiError(
