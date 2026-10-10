@@ -1804,6 +1804,171 @@ describe("Auth Validation", () => {
 
     })
 
+    // SOME OTHER TESTS
+
+    test("Register validation trims fullname after successful validation", () => {
+
+    const req = {
+        body: {
+            fullname: "   Test Learner   ",
+            username: "testlearner",
+            email: "testlearner@gmail.com",
+            password: "Password@123",
+            accountType: "LEARNER",
+            languages: ["ENGLISH"]
+        }
+    }
+
+    const res = {}
+    const next = jest.fn()
+
+    validateRegister(req, res, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(req.body.fullname).toBe("Test Learner")
+
+    })
+
+
+    test("Register validation collects multiple errors together", () => {
+
+    const req = {
+        body: {
+            fullname: "A",
+            username: "AB",
+            email: "invalidemail",
+            password: "Password@123",
+            accountType: "LEARNER",
+            languages: ["ENGLISH"]
+        }
+    }
+
+    const res = {}
+    const next = jest.fn()
+
+    let error
+
+    try {
+        validateRegister(req, res, next)
+    } catch (err) {
+        error = err
+    }
+
+    expect(error).toBeDefined()
+    expect(error.statusCode).toBe(400)
+    expect(error.code).toBe(ERROR_CODES.INVALID_REQUEST)
+
+    expect(error.errors).toEqual(
+        expect.arrayContaining([
+            expect.objectContaining({
+                field: "fullname"
+            }),
+            expect.objectContaining({
+                field: "username"
+            }),
+            expect.objectContaining({
+                field: "email"
+            })
+        ])
+    )
+
+    expect(error.errors).toHaveLength(3)
+    expect(next).not.toHaveBeenCalled()
+
+    })
+
+
+    test("Register validation accepts fullname with exactly 2 characters", () => {
+
+    const req = {
+        body: {
+            fullname: "AB",
+            username: "testlearner",
+            email: "testlearner@gmail.com",
+            password: "Password@123",
+            accountType: "LEARNER",
+            languages: ["ENGLISH"]
+        }
+    }
+
+    const res = {}
+    const next = jest.fn()
+
+    validateRegister(req, res, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Register validation accepts fullname with exactly 60 characters", () => {
+
+    const req = {
+        body: {
+            fullname: "A".repeat(60),
+            username: "testlearner",
+            email: "testlearner@gmail.com",
+            password: "Password@123",
+            accountType: "LEARNER",
+            languages: ["ENGLISH"]
+        }
+    }
+
+    const res = {}
+    const next = jest.fn()
+
+    validateRegister(req, res, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Register validation accepts username with exactly 3 characters", () => {
+
+    const req = {
+        body: {
+            fullname: "Test Learner",
+            username: "abc",
+            email: "testlearner@gmail.com",
+            password: "Password@123",
+            accountType: "LEARNER",
+            languages: ["ENGLISH"]
+        }
+    }
+
+    const res = {}
+    const next = jest.fn()
+
+    validateRegister(req, res, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Register validation accepts username with exactly 30 characters", () => {
+
+    const req = {
+        body: {
+            fullname: "Test Learner",
+            username: "a".repeat(30),
+            email: "testlearner@gmail.com",
+            password: "Password@123",
+            accountType: "LEARNER",
+            languages: ["ENGLISH"]
+        }
+    }
+
+    const res = {}
+    const next = jest.fn()
+
+    validateRegister(req, res, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+
+    }) 
+
 
 
 
