@@ -77,44 +77,56 @@ const userSchema = new mongoose.Schema(
 
     teachingSkills: {
       type: [
-        {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Skill",
-        },
+          {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "Skill",
+          },
       ],
-      validate: {
-        validator: function (skills) {
-          if (
-            this.accountType == "TEACHER" ||
-            this.accountType == "TEACHER_LEARNER"
-          ) {
-            return skills.length > 0;
-          }
-          return true;
-        },
-        message: "atleast one teaching skill is required!!",
-      },
+          validate: {
+              validator: function (skills) {
+
+                  if (
+                      this.accountType === "TEACHER" ||
+                      this.accountType === "TEACHER_LEARNER"
+                  ) {
+                      return skills.length > 0
+                  }
+
+                  if (this.accountType === "LEARNER") {
+                      return skills.length === 0
+                  }
+
+                  return false
+              },
+              message: "Teaching skills are invalid for this account type",
+          },
     },
 
     teachingStyles: {
-      type: [
+    type: [
         {
-          type: String,
-          enum: Object.values(TEACHING_STYLES),
+            type: String,
+            enum: Object.values(TEACHING_STYLES),
         },
-      ],
-      validate: {
+    ],
+    validate: {
         validator: function (styles) {
-          if (
-            this.accountType == "TEACHER" ||
-            this.accountType == "TEACHER_LEARNER"
-          ) {
-            return styles.length > 0;
-          }
-          return true;
+
+            if (
+                this.accountType === ACCOUNT_TYPES.TEACHER ||
+                this.accountType === ACCOUNT_TYPES.TEACHER_LEARNER
+            ) {
+                return Array.isArray(styles) && styles.length > 0
+            }
+
+            if (this.accountType === ACCOUNT_TYPES.LEARNER) {
+                return Array.isArray(styles) && styles.length === 0
+            }
+
+            return false
         },
-        message: "At least one teaching style is required",
-      },
+        message: "Teaching styles are invalid for this account type",
+    },
     },
 
     rating: {
