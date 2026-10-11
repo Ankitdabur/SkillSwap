@@ -9,7 +9,10 @@ import {
   generateAccessToken,
   generateRefreshToken,
   hashRefreshToken,
+  verifyRefreshToken,
+  compareRefreshToken
 } from "../../utils/token.js";
+
 
 // REGISTER 
 const registerUserService = async (userData , avatarLocalPath) => {
@@ -245,6 +248,73 @@ const loginUserService = async (userData) => {
 
 }
 
+//REFRESH ACCESS TOKEN
+const refreshUserService = async (incomingRefreshToken) => {
 
-export { registerUserService , loginUserService};
+  const decodedToken =  verifyRefreshToken(incomingRefreshToken)
+
+  const user = await User.findById(decodedToken?._id)
+  .select("+refreshTokenHash");
+
+  if (!user || !user.refreshTokenHash) {
+    throw new ApiError(
+      401,
+      "Invalid refresh token",
+      ERROR_CODES.INVALID_REFRESH_TOKEN,
+    );
+  }
+
+  const isRefreshTokenValid = await compareRefreshToken(incomingRefreshToken , user.refreshTokenHash)
+
+  if (!isRefreshTokenValid) {
+    throw new ApiError(
+      401,
+      "Invalid refresh token",
+      ERROR_CODES.INVALID_REFRESH_TOKEN,
+    );
+  }
+
+  const accessToken = generateAccessToken(user._id);
+
+  const refreshToken = generateRefreshToken(user._id);
+
+  const refreshTokenHash = await hashRefreshToken(refreshToken);
+  
+  const updatedUser = await User.findByIdAndUpdate(
+  user._id,
+  {
+    $set: { refreshTokenHash },
+  },
+  { new: true },
+  );
+
+  if (!updatedUser) {
+    throw new ApiError(
+      401,
+      "Invalid refresh token",
+      ERROR_CODES.INVALID_REFRESH_TOKEN,
+    );
+  }
+   return {
+    accessToken,
+    refreshToken
+   }
+}
+
+//LOGOUT USER
+const logoutUserService = async (userId) => {
+  
+  await User.findByIdAndUpdate( userId,
+    {
+      $unset : {
+        hashRefreshToken : 1
+      },
+    }
+  )
+
+  return
+}
+
+
+export { registerUserService , loginUserService , refreshUserService , logoutUserService};
 
