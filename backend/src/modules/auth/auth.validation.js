@@ -6,6 +6,9 @@ import {
   TEACHING_STYLES,
 } from "../../constants/enums.js";
 
+
+//REGISTER VALIDATION
+
 const ALLOWED_REGISTER_FIELDS = [
   "fullname",
   "username",
@@ -31,6 +34,7 @@ const hasDuplicateSkillIds = (skillIds) => {
   return new Set(normalizedIds).size !== normalizedIds.length;
 };
 
+
 const validateRegister = (req, _res, next) => {
   const errors = [];
 
@@ -42,7 +46,7 @@ const validateRegister = (req, _res, next) => {
       message,
       code,
     });
-  };
+};
 
 
   // 1. Check unknown fields
@@ -488,4 +492,154 @@ const validateRegister = (req, _res, next) => {
   next();
 };
 
-export { validateRegister };
+
+
+
+// LOGIN VALIDATION
+
+const ALLOWED_LOGIN_FIELDS = [
+  "identifier",
+  "password",
+];
+
+
+const validateLogin = (req, _ , next) => {
+  const errors = [];
+
+  const body = req.body || {};
+
+  const addError = (field, message, code) => {
+    errors.push({
+      field,
+      message,
+      code,
+    });
+};
+
+
+
+  // 1. Check unknown fields
+
+  const receivedFields = Object.keys(body);
+
+  const unknownFields = receivedFields.filter(
+    (field) => !ALLOWED_LOGIN_FIELDS.includes(field),
+  );
+
+  unknownFields.forEach((field) => {
+    addError(
+      field,
+      `Unknown login field: ${field}`,
+      ERROR_CODES.INVALID_REQUEST,
+    );
+  });
+
+
+  const {
+    identifier,
+    password,
+  } = body;
+
+
+  // 2. Identifier
+
+  let normalizedIdentifier;
+
+  if (
+    identifier === undefined ||
+    identifier === null ||
+    identifier === ""
+  ) {
+    addError(
+      "identifier",
+      "Identifier is required",
+      ERROR_CODES.MISSING_REQUIRED_FIELDS,
+    );
+  } else if (typeof identifier !== "string") {
+    addError(
+      "identifier",
+      "Identifier must be a string",
+      ERROR_CODES.INVALID_FIELD_VALUE,
+    );
+  } else {
+    normalizedIdentifier = identifier.trim();
+
+    if (normalizedIdentifier.length === 0) {
+      addError(
+        "identifier",
+        "Identifier is required",
+        ERROR_CODES.MISSING_REQUIRED_FIELDS,
+      );
+    } else {
+      const isEmail = normalizedIdentifier.includes("@");
+
+      if (isEmail) {
+        normalizedIdentifier = normalizedIdentifier.toLowerCase();
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(normalizedIdentifier)) {
+          addError(
+            "identifier",
+            "Please provide a valid email address",
+            ERROR_CODES.INVALID_FIELD_VALUE,
+          );
+        }
+      } else {
+        const usernameRegex = /^[a-z0-9_]{3,30}$/;
+
+        if (!usernameRegex.test(normalizedIdentifier)) {
+          addError(
+            "identifier",
+            "Please provide a valid username",
+            ERROR_CODES.INVALID_FIELD_VALUE,
+          );
+        }
+      }
+    }
+  }
+
+
+  // 3. Password
+
+  if (
+    password === undefined ||
+    password === null ||
+    password === ""
+  ) {
+    addError(
+      "password",
+      "Password is required",
+      ERROR_CODES.MISSING_REQUIRED_FIELDS,
+    );
+  } else if (typeof password !== "string") {
+    addError(
+      "password",
+      "Password must be a string",
+      ERROR_CODES.INVALID_FIELD_VALUE,
+    );
+  }
+
+
+  // 4. Throw validation errors together
+
+  if (errors.length > 0) {
+    throw new ApiError(
+      400,
+      "Login validation failed",
+      ERROR_CODES.INVALID_REQUEST,
+      errors,
+    );
+  }
+
+
+  // 5. Normalize only after validation succeeds
+
+  req.body.identifier = normalizedIdentifier;
+
+  next();
+};
+
+export { validateRegister , validateLogin };
+
+

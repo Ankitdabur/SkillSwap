@@ -5,8 +5,13 @@ import uploadOnCloudinary from "../../utils/cloudinary.js"
 import ApiError from "../../utils/ApiError.js";
 import { ERROR_CODES } from "../../constants/errorCodes.js";
 import { ACCOUNT_TYPES } from "../../constants/enums.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  hashRefreshToken,
+} from "../../utils/token.js";
 
-
+// REGISTER 
 const registerUserService = async (userData , avatarLocalPath) => {
 
     const {
@@ -152,5 +157,94 @@ const registerUserService = async (userData , avatarLocalPath) => {
 };
 
 
-export { registerUserService };
+//LOGIN
+const loginUserService = async (userData) => {
+  
+  const {
+    identifier,
+    password,
+  } = userData;
+
+
+  // find user using username or email
+
+  const user = await User.findOne({
+    $or: [
+      { username: identifier },
+      { email: identifier },
+    ],
+  }).select("+password");
+
+
+  // user not found
+
+  if (!user) {
+    throw new ApiError(
+      401,
+      "Invalid credentials",
+      ERROR_CODES.INVALID_CREDENTIALS,
+    );
+  }
+
+
+  // check password
+
+  const isPasswordCorrect = await user.isPasswordCorrect(password);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(
+      401,
+      "Invalid credentials",
+      ERROR_CODES.INVALID_CREDENTIALS,
+    );
+  }
+
+
+  // generate tokens
+
+  const accessToken = generateAccessToken(user._id);
+
+  const refreshToken = generateRefreshToken(user._id);
+
+
+  // hash refresh token before storing in database
+
+  const refreshTokenHash = await hashRefreshToken(refreshToken);
+
+
+  // store refresh token hash
+
+  const loggedInUser = await User.findByIdAndUpdate(
+    user._id,
+    {
+      $set: {
+        refreshTokenHash,
+      },
+    },
+    {
+        new : true
+    }
+  );
+
+ 
+
+  if (!loggedInUser) {
+    throw new ApiError(
+      500,
+      "Something went wrong while logging in",
+      ERROR_CODES.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+
+  return {
+    user: loggedInUser,
+    accessToken,
+    refreshToken,
+  };
+
+}
+
+
+export { registerUserService , loginUserService};
 

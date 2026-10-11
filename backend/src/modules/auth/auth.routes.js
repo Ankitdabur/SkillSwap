@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { validateRegister } from "./auth.validation.js";
-import { registerUser } from "./auth.controller.js";
+import { validateRegister , validateLogin} from "./auth.validation.js";
+import { registerUser , loginUser } from "./auth.controller.js";
 import multer from "multer";
 import upload from "../../middlewares/multer.middleware.js";
 
@@ -15,5 +15,6 @@ router.post(
   validateRegister,
   registerUser,
 );
+router.post("/login" , validateLogin , loginUser)
 
 export default router
