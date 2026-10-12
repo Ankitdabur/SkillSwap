@@ -4,6 +4,7 @@ import cors from "cors"
 import { errorHandler } from "./middlewares/error.middleware.js"
 import { notFound } from "./middlewares/notFound.middleware.js"
 import authRouter from "./modules/auth/auth.routes.js"
+import userRouter from "./modules/users/user.routes.js"
 
 const app = express()
 
@@ -18,7 +19,7 @@ app.use(cookieparser())
 
 //routes
 app.use("/api/v1/auth" , authRouter)
-
+app.use("/api/v1/user" , userRouter)
 
 //not found middleware
 app.use(notFound)

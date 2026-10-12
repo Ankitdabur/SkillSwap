@@ -23,4 +23,4 @@ const requireAccountTypes = (...allowedAccountType) => {
     }
 }
 
-export {requireAccountType}
+export {requireAccountTypes}

@@ -8,25 +8,21 @@ import {
   loginUser , 
   refreshAccessToken , 
   logoutUser , 
-  getCurrentUser
 }  from "./auth.controller.js";
 
 
 
 const router = Router()
 
-router.post(
-  "/register",
-  upload.single("avatar"),
-  validateRegister,
-  registerUser,
-);
+
+
+router.post("/register", upload.single("avatar") , validateRegister , registerUser);
 router.post("/login" , validateLogin , loginUser)
 router.post("/refresh" , refreshAccessToken)
 
 //secured routes
 router.post("/logout" , verifyJWT , logoutUser)
-router.get("/me" , verifyJWT , getCurrentUser);
+
 
 
 export default router

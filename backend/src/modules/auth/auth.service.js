@@ -307,7 +307,7 @@ const logoutUserService = async (userId) => {
   await User.findByIdAndUpdate( userId,
     {
       $unset : {
-        hashRefreshToken : 1
+        refreshTokenHash : 1
       },
     }
   )
