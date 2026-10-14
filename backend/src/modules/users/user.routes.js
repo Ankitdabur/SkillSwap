@@ -21,10 +21,10 @@ router.get("/me" , verifyJWT , getCurrentUser);
 router.patch("/me/update" , verifyJWT , upload.single("avatar") , validateUpdateProfile , updateProfile)
 //upgrate teacher and learner accounts only
 router.patch("/me/account-upgrade", verifyJWT , validateAccountUpgrade , upgradeAccount,);
-//get info of any user 
-router.get("/:userId", verifyJWT ,validateUserIdParam ,getUserProfile);
 //update the teaching fields only
 router.patch("/me/update/teaching-profile", verifyJWT, validateUpdateTeachingProfile , updateTeachingProfile);
+//get info of any user 
+router.get("/:userId", verifyJWT ,validateUserIdParam ,getUserProfile);
 //change current password
 router.patch("/change-password" , verifyJWT , validateChangePassword , changePassword )
 

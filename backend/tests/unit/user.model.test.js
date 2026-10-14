@@ -854,7 +854,7 @@ describe("User Model", () => {
         )
 
         expect(passwordMatches).toBe(true)
-
+        
     })
 
 

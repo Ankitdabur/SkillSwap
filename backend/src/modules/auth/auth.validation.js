@@ -35,6 +35,7 @@ const hasDuplicateSkillIds = (skillIds) => {
 };
 
 
+//REGISTER VALIDATION
 const validateRegister = (req, _res, next) => {
   const errors = [];
 

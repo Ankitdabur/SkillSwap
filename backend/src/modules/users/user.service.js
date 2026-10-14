@@ -101,11 +101,9 @@ const upgradeAccountService = async (userId, upgradeData) => {
 
   if (isLearnerUpgrade) {
     user.teachingSkills = teachingSkills;
-  }
-
-  if (isLearnerUpgrade) {
     user.teachingStyles = teachingStyles;
   }
+
 
 
   // 6. Save updated user

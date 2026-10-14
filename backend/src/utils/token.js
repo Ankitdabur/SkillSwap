@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt"
 import ApiError from "./ApiError.js";
 import { ERROR_CODES } from "../constants/errorCodes.js";
+import { createHash , randomUUID} from "node:crypto";
 
 export const generateAccessToken =  (userId) => {
      return jwt.sign(
@@ -22,7 +22,8 @@ export const generateRefreshToken = (userId) => {
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
-            expiresIn : process.env.REFRESH_TOKEN_EXPIRY
+            expiresIn : process.env.REFRESH_TOKEN_EXPIRY,
+            jwtid: randomUUID()
         }
     );
 }
@@ -55,10 +56,22 @@ export const verifyRefreshToken =  (token) => {
     }
 }
 
-export const hashRefreshToken = async (token) => {
-  return await bcrypt.hash(token, 10);
+// export const hashRefreshToken = async (token) => {
+//   return await bcrypt.hash(token, 10);
+// };
+
+// export const compareRefreshToken = async (token, hashedToken) => {
+//   return await bcrypt.compare(token, hashedToken);
+// };
+
+export const hashRefreshToken = (token) => {
+    return createHash("sha256")
+        .update(token)
+        .digest("hex");
 };
 
-export const compareRefreshToken = async (token, hashedToken) => {
-  return await bcrypt.compare(token, hashedToken);
+export const compareRefreshToken = ( token,storedHash) => {
+    const tokenHash = hashRefreshToken(token);
+
+    return tokenHash === storedHash;
 };

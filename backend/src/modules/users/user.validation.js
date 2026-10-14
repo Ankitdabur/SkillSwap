@@ -3,6 +3,7 @@ import { ERROR_CODES } from "../../constants/errorCodes.js";
 import {
   ACCOUNT_TYPES,
   TEACHING_STYLES,
+  LANGUAGES
 } from "../../constants/enums.js";
 
 
@@ -197,7 +198,7 @@ const validateAccountUpgrade = (req, _ , next) => {
 };
 
 
-//GET USER
+//GET USER PROFILE
 const validateUserIdParam = (req, res, next) => {
   const { userId } = req.params;
 

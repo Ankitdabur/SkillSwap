@@ -47,7 +47,7 @@ const updateProfile = asyncHandler (async (req , res) => {
    
     const updateData = {...req.body} 
 
-    if(req.file.path){
+    if(req.file?.path){
         const avatarLocalPath = req.file.path
         const avatar = await uploadOnCloudinary(avatarLocalPath)
 
