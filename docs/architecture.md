@@ -457,11 +457,13 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 ### Phase 1 Backend foundation authentication and account permissions
 
+**Status:** backend scope completed on 15 October 2026. All current automated tests pass (16 suites and 201 tests). Frontend work remains deliberately deferred and does not block this completion status. Graceful shutdown is deferred to Phase 10.
+
 **Goal:** establish the secure base used by every later module.
 
 **Backend work**
 
-- Initialize the Node/Express application, configuration validation, MongoDB connection, logging, and graceful shutdown.
+- Initialize the Node/Express application, configuration validation, MongoDB connection, and logging. Graceful shutdown is deliberately deferred to Phase 10 hardening and operations.
 - Add the User model, password hashing, registration, login, refresh, logout, and current-user endpoint.
 - Add only the minimum Skill model and predefined-catalog functionality needed for registration and learner-to-teaching-account upgrades to reference existing Skill ObjectIds.
   - Maintain the initial predefined Skill data as backend-controlled seed data. Each seed entry contains only `name`, `displayName`, `category`, and `description`. Store `name` in lowercase as the canonical value and preserve the intended human-readable casing and formatting in `displayName`. MongoDB/Mongoose generates `_id`, `createdAt`, and `updatedAt`, and every `category` must be a predefined `SKILL_CATEGORIES` value.
@@ -699,6 +701,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 **Work**
 
+- Add graceful shutdown for `SIGINT` and `SIGTERM`, including stopping the HTTP server and closing the MongoDB connection.
 - Add rate limits for auth, chat, uploads, reports, and AI endpoints.
 - Add security headers, strict CORS, payload limits, upload type/size checks, and secret management.
 - Add structured logs, request IDs, audit events for sensitive admin/credit actions, health checks, and alerts.
@@ -740,11 +743,11 @@ Resolve these explicitly; do not hide them in implementation details.
 
 ## Immediate Next Steps
 
-Phase 0 has no unresolved decisions blocking Phase 1. The next concrete work items are:
+Phase 1 backend work is complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 2 backend capabilities:
 
-1. Initialize the backend with the finalized environment approach, configuration validation, MongoDB connection, error handling, and tests.
-2. Implement the User schema, including the finalized teaching-style and language enums, before creating the other 13 models.
-3. Implement authentication with the finalized access-token and rotating refresh-token strategy.
-4. Apply the finalized response, error, manual-validation, and mixed-pagination conventions as their endpoints are implemented.
+1. Complete predefined Skill catalog management and implement the SkillRequest workflow.
+2. Complete teaching-profile reads and updates using predefined Skill references.
+3. Implement the shared weekly Availability CRUD workflow.
+4. Implement teacher discovery, safe public projections, pagination, and the required discovery indexes.
 
 Do not begin booking, credits, cron jobs, Socket.IO, or AI until their prerequisite phases and exit criteria are complete.
