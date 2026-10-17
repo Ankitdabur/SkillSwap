@@ -4,7 +4,24 @@ import {
   ACCOUNT_TYPES,
   LANGUAGES,
   TEACHING_STYLES,
+  DAYS_OF_WEEK,
 } from "../../constants/enums.js";
+
+
+const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
+
+const hasDuplicates = (values) => {
+  return new Set(values).size !== values.length;
+};
+
+
+const hasDuplicateSkillIds = (skillIds) => {
+  const normalizedIds = skillIds.map((skillId) =>
+    skillId.toLowerCase(),
+  );
+
+  return new Set(normalizedIds).size !== normalizedIds.length;
+};
 
 
 //REGISTER VALIDATION
@@ -18,24 +35,19 @@ const ALLOWED_REGISTER_FIELDS = [
   "languages",
   "teachingSkills",
   "teachingStyles",
+  "availability",
 ];
 
-const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
-
-const hasDuplicates = (values) => {
-  return new Set(values).size !== values.length;
-};
-
-const hasDuplicateSkillIds = (skillIds) => {
-  const normalizedIds = skillIds.map((skillId) =>
-    skillId.toLowerCase(),
-  );
-
-  return new Set(normalizedIds).size !== normalizedIds.length;
-};
+const ALLOWED_AVAILABILITY_FIELDS = [
+  "day",
+  "startTime",
+  "endTime",
+];
 
 
-//REGISTER VALIDATION
+const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+
 const validateRegister = (req, _res, next) => {
   const errors = [];
 
@@ -76,6 +88,7 @@ const validateRegister = (req, _res, next) => {
     languages,
     teachingSkills,
     teachingStyles,
+    availability,
   } = body;
 
 
@@ -471,7 +484,266 @@ const validateRegister = (req, _res, next) => {
   }
 
 
-  // 9. Throw all validation errors together
+  // 9. Availability
+
+
+  if (
+    availability === undefined ||
+    availability === null
+  ) {
+    addError(
+      "availability",
+      "Availability is required",
+      ERROR_CODES.MISSING_REQUIRED_FIELDS,
+    );
+  } else if (!Array.isArray(availability)) {
+    addError(
+      "availability",
+      "Availability must be an array",
+      ERROR_CODES.INVALID_FIELD_VALUE,
+    );
+  } else if (availability.length === 0) {
+    addError(
+      "availability",
+      "At least one availability slot is required",
+      ERROR_CODES.MISSING_REQUIRED_FIELDS,
+    );
+  } else {
+    const validAvailabilitySlots = [];
+
+    availability.forEach((slot, index) => {
+      if (
+        typeof slot !== "object" ||
+        slot === null ||
+        Array.isArray(slot)
+      ) {
+        addError(
+          `availability[${index}]`,
+          "Availability slot must be an object",
+          ERROR_CODES.INVALID_FIELD_VALUE,
+        );
+
+        return;
+      }
+
+
+      // Unknown availability fields
+
+
+      const receivedSlotFields = Object.keys(slot);
+
+      const unknownSlotFields = receivedSlotFields.filter(
+        (field) =>
+          !ALLOWED_AVAILABILITY_FIELDS.includes(field),
+      );
+
+      unknownSlotFields.forEach((field) => {
+        addError(
+          `availability[${index}].${field}`,
+          `Unknown availability field: ${field}`,
+          ERROR_CODES.INVALID_REQUEST,
+        );
+      });
+
+      const {
+        day,
+        startTime,
+        endTime,
+      } = slot;
+
+
+      // Day
+
+
+      const validDay =
+        typeof day === "string" &&
+        Object.values(DAYS_OF_WEEK).includes(day);
+
+      if (
+        day === undefined ||
+        day === null ||
+        day === ""
+      ) {
+        addError(
+          `availability[${index}].day`,
+          "Availability day is required",
+          ERROR_CODES.MISSING_REQUIRED_FIELDS,
+        );
+      } else if (!validDay) {
+        addError(
+          `availability[${index}].day`,
+          "Invalid availability day",
+          ERROR_CODES.INVALID_FIELD_VALUE,
+        );
+      }
+
+
+      // Start time
+
+
+      const validStartTime =
+        typeof startTime === "string" &&
+        TIME_REGEX.test(startTime);
+
+      if (
+        startTime === undefined ||
+        startTime === null ||
+        startTime === ""
+      ) {
+        addError(
+          `availability[${index}].startTime`,
+          "Start time is required",
+          ERROR_CODES.MISSING_REQUIRED_FIELDS,
+        );
+      } else if (!validStartTime) {
+        addError(
+          `availability[${index}].startTime`,
+          "Start time must use HH:mm format",
+          ERROR_CODES.INVALID_FIELD_VALUE,
+        );
+      }
+
+
+      // End time
+
+
+      const validEndTime =
+        typeof endTime === "string" &&
+        TIME_REGEX.test(endTime);
+
+      if (
+        endTime === undefined ||
+        endTime === null ||
+        endTime === ""
+      ) {
+        addError(
+          `availability[${index}].endTime`,
+          "End time is required",
+          ERROR_CODES.MISSING_REQUIRED_FIELDS,
+        );
+      } else if (!validEndTime) {
+        addError(
+          `availability[${index}].endTime`,
+          "End time must use HH:mm format",
+          ERROR_CODES.INVALID_FIELD_VALUE,
+        );
+      }
+
+
+      // Time range
+
+
+      const validTimeRange =
+        validStartTime &&
+        validEndTime &&
+        endTime > startTime;
+
+      if (
+        validStartTime &&
+        validEndTime &&
+        !validTimeRange
+      ) {
+        addError(
+          `availability[${index}].endTime`,
+          "End time must be later than start time",
+          ERROR_CODES.INVALID_FIELD_VALUE,
+        );
+      }
+
+      if (
+        validDay &&
+        validTimeRange
+      ) {
+        validAvailabilitySlots.push({
+          index,
+          day,
+          startTime,
+          endTime,
+        });
+      }
+    });
+
+
+    // Duplicate and overlapping slots
+
+
+    validAvailabilitySlots.forEach(
+      (currentSlot, currentIndex) => {
+        for (
+          let previousIndex = 0;
+          previousIndex < currentIndex;
+          previousIndex += 1
+        ) {
+          const previousSlot =
+            validAvailabilitySlots[previousIndex];
+
+          if (currentSlot.day !== previousSlot.day) {
+            continue;
+          }
+
+
+          // Duplicate slot
+
+
+          const duplicateSlot =
+            currentSlot.startTime ===
+              previousSlot.startTime &&
+            currentSlot.endTime ===
+              previousSlot.endTime;
+
+          if (duplicateSlot) {
+            addError(
+              `availability[${currentSlot.index}]`,
+              "Availability must not contain duplicate slots",
+              ERROR_CODES.INVALID_FIELD_VALUE,
+            );
+
+            break;
+          }
+
+
+          // Overlapping slot
+
+
+          const previousStartIsBetweenCurrentSlot =
+            previousSlot.startTime >=
+              currentSlot.startTime &&
+            previousSlot.startTime <
+              currentSlot.endTime;
+
+          const previousEndIsBetweenCurrentSlot =
+            previousSlot.endTime >
+              currentSlot.startTime &&
+            previousSlot.endTime <=
+              currentSlot.endTime;
+
+          const previousSlotContainsCurrentSlot =
+            previousSlot.startTime <
+              currentSlot.startTime &&
+            previousSlot.endTime >
+              currentSlot.endTime;
+
+          const overlappingSlot =
+            previousStartIsBetweenCurrentSlot ||
+            previousEndIsBetweenCurrentSlot ||
+            previousSlotContainsCurrentSlot;
+
+          if (overlappingSlot) {
+            addError(
+              `availability[${currentSlot.index}]`,
+              "Availability slots must not overlap",
+              ERROR_CODES.INVALID_FIELD_VALUE,
+            );
+
+            break;
+          }
+        }
+      },
+    );
+  }
+
+
+  // 10. Throw all validation errors together
 
 
   if (errors.length > 0) {
@@ -484,7 +756,7 @@ const validateRegister = (req, _res, next) => {
   }
 
 
-  // 10. Normalize only after validation succeeds
+  // 11. Normalize only after validation succeeds
 
 
   req.body.fullname = normalizedFullname;

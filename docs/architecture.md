@@ -168,6 +168,7 @@ Within a backend module, use a consistent direction such as route -> controller 
   - `password` is required, must be at least 8 characters long, and must contain at least one uppercase letter, one lowercase letter, one number, and one special character. No maximum password length is currently defined.
   - `accountType` is required and must be `TEACHER`, `TEACHER_LEARNER`, or `LEARNER`.
   - `languages` is required for every account type and must be a non-empty array containing only finalized `LANGUAGES` enum values.
+  - `availability` is required during registration for every account type and must contain at least one valid weekly availability slot. Registration must reject missing or empty availability, invalid day/time values, duplicate slots, and overlapping slots. Interpret the submitted weekly schedule using the `Asia/Kolkata` product timezone.
   - For `TEACHER` and `TEACHER_LEARNER`, `teachingSkills` and `teachingStyles` are required non-empty arrays. Every teaching Skill ID must have a valid MongoDB ObjectId shape, and every teaching style must be a finalized `TEACHING_STYLES` enum value. `auth.service.js` must query the predefined Skill catalog and confirm that every referenced Skill exists.
   - A `LEARNER` must not send `teachingSkills` or `teachingStyles`; reject the request if either field is supplied.
 - Reject duplicate values in `languages`, `teachingStyles`, and `teachingSkills`; validation must not silently deduplicate client input.
@@ -242,7 +243,7 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 
 - A User can offer many predefined Skills through `User.teachingSkills`. There is no `learningSkills` field, and category names are not duplicated on User.
 - Each Skill belongs to one predefined category. Categories do not create a separate collection.
-- Availability records belong to one User and form that user's single shared weekly schedule. A `TEACHER_LEARNER` uses the same schedule for both teaching and learning; do not add separate teaching/learning schedules or duplicate availability fields on User.
+- Availability records belong to one User and form that user's mandatory single shared weekly schedule, which is first collected during registration and may be updated later. Store the schedule in the Availability collection rather than duplicating availability fields on User. A `TEACHER_LEARNER` uses the same schedule for both teaching and learning; do not add separate teaching/learning schedules.
 - A Match connects two users and is independent of skill.
 - A Match can contain many Sessions.
 - A Session references one Match, teacher, learner, and Skill; it may also reference one RecurringSchedule.
@@ -283,7 +284,7 @@ Finalize enum values and query shapes before migration, then create indexes for 
 
 A teaching-capable account must provide at least one teaching skill and at least one teaching style. A learner must not supply teaching fields during registration and may later upgrade to a teaching-capable account after supplying the required teaching information.
 
-Every account type can manage one weekly availability schedule. A `LEARNER` uses it for learning, a `TEACHER` uses it for teaching, and a `TEACHER_LEARNER` uses the same schedule for both.
+Every account type must provide a non-empty weekly availability schedule during registration and may manage that schedule afterward. A `LEARNER` uses it for learning, a `TEACHER` uses it for teaching, and a `TEACHER_LEARNER` uses the same schedule for both.
 
 During registration and teaching-account upgrades, show the predefined categories and the predefined Skills within each category. Users select existing Skills from this catalog rather than creating or entering an arbitrary Skill directly. When SkillRequest functionality is implemented in Phase 2, a user may submit a request for a missing Skill.
 
@@ -494,7 +495,8 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 - Complete the predefined categorized Skill catalog management and implement SkillRequest with admin approval/rejection; approved requests may create additional Skill documents beyond the original seeded catalog.
 - Implement teaching-profile reads and updates using predefined Skill references.
-- Implement Availability CRUD for all users using one shared weekly schedule per user.
+- Extend registration so availability is mandatory for every account type and create the User and initial Availability data as one atomic workflow: both must succeed or both must fail.
+- Implement Availability CRUD for all users using the same shared weekly schedule collected during registration.
 - Implement teacher discovery with strict Skill, optional teaching-style, and common-language filtering before weighted compatibility scoring and ordering.
 - Add pagination, safe public profile projection, and discovery indexes.
 
@@ -502,12 +504,13 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 - Predefined Skill catalog grouped by category and skill-request UI.
 - Teacher-profile editor and public teacher profile.
-- Weekly availability editor.
+- Mandatory weekly availability input during registration and a weekly availability editor for later changes.
 - Teacher search with Skill and optional teaching-style filters, using the learner's languages for common-language eligibility.
 
 **Exit criteria**
 
 - Learner-only users cannot perform teaching-only mutations.
+- Every newly registered user has a valid, non-empty weekly availability schedule.
 - Selecting a teaching style excludes teachers who do not have it.
 - Teachers without a language in common with the learner are excluded before scoring.
 - No style selection uses normal compatibility ordering.
@@ -747,7 +750,7 @@ Phase 1 backend work is complete. Graceful shutdown remains a deliberate Phase 1
 
 1. Complete predefined Skill catalog management and implement the SkillRequest workflow.
 2. Complete teaching-profile reads and updates using predefined Skill references.
-3. Implement the shared weekly Availability CRUD workflow.
+3. Make availability mandatory during registration and implement the shared weekly Availability CRUD workflow.
 4. Implement teacher discovery, safe public projections, pagination, and the required discovery indexes.
 
 Do not begin booking, credits, cron jobs, Socket.IO, or AI until their prerequisite phases and exit criteria are complete.

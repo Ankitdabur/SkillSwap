@@ -291,11 +291,7 @@ describe("POST /api/v1/auth/refresh", () => {
 
     }
 
-    console.log(refreshToken)
-    console.log(newRefreshToken)
-    console.log(
-  Buffer.byteLength(refreshToken, "utf8")
-);
+  
 
     const secondResponse = await axios.post(
       REFRESH_URL,

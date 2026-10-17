@@ -7,6 +7,11 @@ import {
   LANGUAGES,
 } from "../constants/enums.js";
 
+const fullnamePattern = /^[\p{L} '-]+$/u;
+const usernamePattern = /^[a-z0-9_]{3,30}$/;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const passwordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{8,}$/;
+
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -16,12 +21,14 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       index: true,
+      match: usernamePattern,
     },
 
     fullname: {
       type: String,
       required: true,
       trim: true,
+      match: fullnamePattern,
     },
 
     avatar: {
@@ -35,12 +42,14 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       index: true,
+      match: emailPattern,
     },
 
     password: {
       type: String,
       required: true,
       select: false,
+      match: passwordPattern,
     },
 
     refreshTokenHash: {

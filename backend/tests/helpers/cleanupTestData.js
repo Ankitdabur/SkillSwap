@@ -1,5 +1,6 @@
 import User from "../../src/models/user.model.js"
 import Skill from "../../src/models/skill.model.js"
+import Availability from "../../src/models/availability.model.js"
 
 const cleanupTestUsers = async () => {
     await User.deleteMany({
@@ -26,6 +27,37 @@ const cleanupTestUsers = async () => {
     })
 }
 
+const cleanupTestAvailability = async () => {
+    const testUsers = await User.find({
+        $or: [
+            {
+                username: {
+                    $in: [
+                        "testlearner",
+                        "testteacher",
+                        "testteacherlearner"
+                    ]
+                }
+            },
+            {
+                email: {
+                    $in: [
+                        "testlearner@gmail.com",
+                        "testteacher@gmail.com",
+                        "testteacherlearner@gmail.com"
+                    ]
+                }
+            }
+        ]
+    }).select("_id")
+
+    await Availability.deleteMany({
+        userId: {
+            $in: testUsers.map((user) => user._id)
+        }
+    })
+}
+
 const cleanupTestSkills = async () => {
     await Skill.deleteMany({
         name: {
@@ -39,6 +71,7 @@ const cleanupTestSkills = async () => {
 
 export {
     cleanupTestUsers,
+    cleanupTestAvailability,
     cleanupTestSkills
 }
 

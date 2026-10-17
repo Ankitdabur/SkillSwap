@@ -1,6 +1,8 @@
 import asyncHandler from "../../utils/asyncHandler.js";
+import mongoose from "mongoose";
 import User from "../../models/user.model.js";
 import Skill from "../../models/skill.model.js"
+import Availability from "../../models/availability.model.js";
 import uploadOnCloudinary from "../../utils/cloudinary.js"
 import ApiError from "../../utils/ApiError.js";
 import { ERROR_CODES } from "../../constants/errorCodes.js";
@@ -26,6 +28,7 @@ const registerUserService = async (userData , avatarLocalPath) => {
     languages,
     teachingSkills,
     teachingStyles,
+    availability
   } = userData;
 
     // check if email already exists
@@ -93,7 +96,7 @@ const registerUserService = async (userData , avatarLocalPath) => {
         avatarUrl = avatar.url || avatar.secure_url    
     } 
 
-    // prepare user data
+    // prepare user data 
 
     const userToCreate = {
          fullname,
@@ -107,17 +110,46 @@ const registerUserService = async (userData , avatarLocalPath) => {
          teachingStyles
     };
 
-  // create user
 
-  let user;
 
-  try {
-    user = await User.create(userToCreate);
-  } catch (error) {
+  // create user and availability using transaction
 
-    // database unique index is the final duplicate protection
+  const session = await mongoose.startSession()
 
-    if (error?.code === 11000) {
+  let user
+  let slots = []
+  let createdUser
+
+  try{
+
+   await session.withTransaction( async () => {
+
+      const users = await User.create([userToCreate] , {session})
+
+      user = users[0]
+
+      const availabilityData = availability.map((slot) => ({
+        userId : user._id,
+        startTime : slot.startTime,
+        endTime : slot.endTime,
+        day : slot.day
+      }))
+
+      slots = await Availability.create( availabilityData , {session , ordered : true})
+
+      createdUser = await User.findById(user._id).session(session)
+
+      if(!createdUser){
+            throw new ApiError(
+                500,
+                "Something went wrong while registering the user",
+                ERROR_CODES.INTERNAL_SERVER_ERROR
+            )
+       }
+
+    })
+  } catch(error){
+      if (error?.code === 11000) {
       if (error?.keyPattern?.email) {
         throw new ApiError(
           409,
@@ -136,27 +168,14 @@ const registerUserService = async (userData , avatarLocalPath) => {
     }
 
     throw error;
+  } finally{
+    await session.endSession()
   }
 
+  return {
+    user : createdUser,
+    availability : slots}
 
-  // get safe user data
-
-  //unnecessary...beacuse in user model select => false
-  //const createdUser = await User.findById(user._id).select(
-  //  "-password -refreshTokenHash",
-  //);
-
-  const createdUser = await User.findById(user._id)
-
-  if (!createdUser) {
-    throw new ApiError(
-      500,
-      "Something went wrong while registering the user",
-      ERROR_CODES.INTERNAL_SERVER_ERROR,
-    );
-  }
-
-  return createdUser;
 };
 
 

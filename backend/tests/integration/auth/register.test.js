@@ -1,21 +1,36 @@
 import axios from "axios";
 import mongoose from "mongoose";
-import { cleanupTestUsers } from "../../helpers/cleanupTestData.js";
 import { dbconnect } from "../../../src/db/index.js";
 import app from "../../../src/app.js";
+import Availability from "../../../src/models/availability.model.js";
+import {createTestLearner,} from "../../helpers/createTestUser.js";
+import {
+  cleanupTestUsers,
+  cleanupTestAvailability,
+} from "../../helpers/cleanupTestData.js";
 import {
   ACCOUNT_TYPES,
   LANGUAGES,
+  DAYS_OF_WEEK,
 } from "../../../src/constants/enums.js";
-import {
-  createTestLearner,
-} from "../../helpers/createTestUser.js";
+
+
+
 
 const PORT = process.env.PORT || 3000;
 
 const BACKEND_URL = `http://localhost:${process.env.PORT}`;
 
 const REGISTER_URL = `${BACKEND_URL}/api/v1/auth/register`;
+
+
+const validAvailability = [
+  {
+    day: DAYS_OF_WEEK.MONDAY,
+    startTime: "10:00",
+    endTime: "12:00",
+  },
+];
 
 
 let server
@@ -29,10 +44,12 @@ describe("POST /api/v1/auth/register", () => {
   })
  
   afterEach(async () => {
+    await cleanupTestAvailability();
     await cleanupTestUsers();
   });
 
   afterAll(async () => {
+    await cleanupTestAvailability();
     await cleanupTestUsers();
 
     await new Promise((resolve) => {
@@ -52,6 +69,7 @@ describe("POST /api/v1/auth/register", () => {
       password: "Password@123",
       accountType: ACCOUNT_TYPES.LEARNER,
       languages: [LANGUAGES.ENGLISH],
+      availability: validAvailability,
     };
 
 
@@ -67,23 +85,79 @@ describe("POST /api/v1/auth/register", () => {
 
     expect(response.data.data).toBeDefined();
 
-    expect(response.data.data.username).toBe(
+    expect(response.data.data.user.username).toBe(
       userData.username
     );
 
-    expect(response.data.data.email).toBe(
+    expect(response.data.data.user.email).toBe(
       userData.email
     );
 
-    expect(response.data.data.accountType).toBe(
+    expect(response.data.data.user.accountType).toBe(
       ACCOUNT_TYPES.LEARNER
     );
 
-    expect(response.data.data.password).toBeUndefined();
+    expect(
+      response.data.data.user.password
+    ).toBeUndefined();
 
     expect(
-      response.data.data.refreshTokenHash
+      response.data.data.user.refreshTokenHash
     ).toBeUndefined();
+
+    expect(
+      response.data.data.availability
+    ).toHaveLength(validAvailability.length);
+
+    expect(
+      response.data.data.availability[0].userId
+    ).toBe(response.data.data.user._id);
+  });
+
+
+  test("should create availability documents linked to the registered user", async () => {
+
+    const userData = {
+      fullname: "Test Learner",
+      username: "testlearner",
+      email: "testlearner@gmail.com",
+      password: "Password@123",
+      accountType: ACCOUNT_TYPES.LEARNER,
+      languages: [LANGUAGES.ENGLISH],
+      availability: [
+        {
+          day: DAYS_OF_WEEK.MONDAY,
+          startTime: "10:00",
+          endTime: "12:00",
+        },
+        {
+          day: DAYS_OF_WEEK.TUESDAY,
+          startTime: "14:00",
+          endTime: "16:00",
+        },
+      ],
+    };
+
+
+    const response = await axios.post(
+      REGISTER_URL,
+      userData
+    );
+
+
+    const savedAvailability = await Availability.find({
+      userId: response.data.data.user._id,
+    });
+
+    expect(savedAvailability).toHaveLength(
+      userData.availability.length
+    );
+
+    savedAvailability.forEach((slot) => {
+      expect(slot.userId.toString()).toBe(
+        response.data.data.user._id
+      );
+    });
   });
 
 
@@ -98,6 +172,7 @@ describe("POST /api/v1/auth/register", () => {
       password: "Password@123",
       accountType: ACCOUNT_TYPES.LEARNER,
       languages: [LANGUAGES.ENGLISH],
+      availability: validAvailability,
     };
 
 
@@ -129,6 +204,7 @@ describe("POST /api/v1/auth/register", () => {
       password: "weakpassword",
       accountType: ACCOUNT_TYPES.LEARNER,
       languages: [LANGUAGES.ENGLISH],
+      availability: validAvailability,
     };
 
 
@@ -160,6 +236,7 @@ describe("POST /api/v1/auth/register", () => {
       password: "Password@123",
       accountType: ACCOUNT_TYPES.LEARNER,
       languages: [LANGUAGES.ENGLISH],
+      availability: validAvailability,
 
       teachingSkills: [],
       teachingStyles: [],
@@ -200,6 +277,7 @@ describe("POST /api/v1/auth/register", () => {
       password: "Password@123",
       accountType: ACCOUNT_TYPES.LEARNER,
       languages: [LANGUAGES.ENGLISH],
+      availability: validAvailability,
     };
 
 
@@ -238,6 +316,7 @@ describe("POST /api/v1/auth/register", () => {
       password: "Password@123",
       accountType: ACCOUNT_TYPES.LEARNER,
       languages: [LANGUAGES.ENGLISH],
+      availability: validAvailability,
     };
 
 

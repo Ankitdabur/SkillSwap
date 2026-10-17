@@ -3,12 +3,21 @@ import { validateRegister } from "../../src/modules/auth/auth.validation.js";
 import { ERROR_CODES } from "../../src/constants/errorCodes.js";
 
 describe("Auth Validation", () => {
+
+    const validAvailability = [
+        {
+            day: "MONDAY",
+            startTime: "10:00",
+            endTime: "12:00"
+        }
+    ]
     
     //CORRECT DATA TEST
     test("Register validation succeeds if all learner data is correct" , () => {
         
         const req = {
             body : {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -30,6 +39,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher",
             username: "testteacher",
             email: "testteacher@gmail.com",
@@ -54,6 +64,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher Learner",
             username: "testteacherlearner",
             email: "testteacherlearner@gmail.com",
@@ -80,6 +91,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -114,6 +126,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Learner",
             username: "testlearner",
             email: "testlearner@gmail.com",
@@ -155,6 +168,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Learner",
             username: "testlearner",
             email: "testlearner@gmail.com",
@@ -199,6 +213,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher",
             username: "testteacher",
             email: "testteacher@gmail.com",
@@ -240,6 +255,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher",
             username: "testteacher",
             email: "testteacher@gmail.com",
@@ -281,6 +297,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher",
             username: "testteacher",
             email: "testteacher@gmail.com",
@@ -323,6 +340,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher",
             username: "testteacher",
             email: "testteacher@gmail.com",
@@ -365,6 +383,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher Learner",
             username: "testteacherlearner",
             email: "testteacherlearner@gmail.com",
@@ -406,6 +425,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher Learner",
             username: "testteacherlearner",
             email: "testteacherlearner@gmail.com",
@@ -447,6 +467,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher Learner",
             username: "testteacherlearner",
             email: "testteacherlearner@gmail.com",
@@ -489,6 +510,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Teacher Learner",
             username: "testteacherlearner",
             email: "testteacherlearner@gmail.com",
@@ -534,6 +556,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -557,6 +580,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 username: "testlearner",
                 email: "testlearner@gmail.com",
                 password: "Password@123",
@@ -596,6 +620,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: 12345,
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -634,6 +659,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "A",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -672,6 +698,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test@123",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -714,6 +741,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "test_learner123",
                 email: "testlearner@gmail.com",
@@ -737,6 +765,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 email: "testlearner@gmail.com",
                 password: "Password@123",
@@ -774,6 +803,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: 12345,
                 email: "testlearner@gmail.com",
@@ -812,6 +842,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "TestLearner",
                 email: "testlearner@gmail.com",
@@ -850,6 +881,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "ab",
                 email: "testlearner@gmail.com",
@@ -891,6 +923,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "TESTLEARNER@GMAIL.COM",
@@ -916,6 +949,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 password: "Password@123",
@@ -953,6 +987,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearnergmail.com",
@@ -995,6 +1030,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1018,6 +1054,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1055,6 +1092,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1093,6 +1131,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1135,6 +1174,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1158,6 +1198,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1195,6 +1236,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1237,6 +1279,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1260,6 +1303,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1297,6 +1341,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1335,6 +1380,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1372,6 +1418,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1410,6 +1457,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1452,6 +1500,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Teacher",
                 username: "testteacher",
                 email: "testteacher@gmail.com",
@@ -1479,6 +1528,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Teacher",
                 username: "testteacher",
                 email: "testteacher@gmail.com",
@@ -1519,6 +1569,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Teacher",
                 username: "testteacher",
                 email: "testteacher@gmail.com",
@@ -1558,6 +1609,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Teacher",
                 username: "testteacher",
                 email: "testteacher@gmail.com",
@@ -1605,6 +1657,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Teacher",
                 username: "testteacher",
                 email: "testteacher@gmail.com",
@@ -1635,6 +1688,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Teacher",
                 username: "testteacher",
                 email: "testteacher@gmail.com",
@@ -1677,6 +1731,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Teacher",
                 username: "testteacher",
                 email: "testteacher@gmail.com",
@@ -1719,6 +1774,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Teacher",
                 username: "testteacher",
                 email: "testteacher@gmail.com",
@@ -1760,6 +1816,816 @@ describe("Auth Validation", () => {
     })
 
 
+    // AVAILABILITY
+
+
+    test("Register validation accepts correct availability", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: validAvailability
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        validateRegister(req, res, next)
+
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Register validation rejects missing availability", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability",
+                    code: ERROR_CODES.MISSING_REQUIRED_FIELDS
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects availability if it is not an array", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: "MONDAY"
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects empty availability array", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: []
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability",
+                    code: ERROR_CODES.MISSING_REQUIRED_FIELDS
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects availability slot if it is not an object", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [null]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[0]",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects unknown availability field", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00",
+                        endTime: "12:00",
+                        timezone: "Asia/Kolkata"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[0].timezone",
+                    code: ERROR_CODES.INVALID_REQUEST
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects missing availability day", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[0].day",
+                    code: ERROR_CODES.MISSING_REQUIRED_FIELDS
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects invalid availability day", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "FUNDAY",
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[0].day",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects missing availability startTime", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        endTime: "12:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[0].startTime",
+                    code: ERROR_CODES.MISSING_REQUIRED_FIELDS
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects invalid availability startTime", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "25:00",
+                        endTime: "12:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[0].startTime",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects missing availability endTime", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[0].endTime",
+                    code: ERROR_CODES.MISSING_REQUIRED_FIELDS
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects invalid availability endTime", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00",
+                        endTime: "24:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[0].endTime",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects availability when endTime is not later than startTime", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "12:00",
+                        endTime: "10:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[0].endTime",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects duplicate availability slots", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    },
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[1]",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects availability when previous startTime is between current slot", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "11:00",
+                        endTime: "13:00"
+                    },
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[1]",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects availability when previous endTime is between current slot", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "09:00",
+                        endTime: "11:00"
+                    },
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[1]",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation rejects availability when previous slot contains current slot", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "09:00",
+                        endTime: "13:00"
+                    },
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        let error
+
+        try {
+            validateRegister(req, res, next)
+        } catch (err) {
+            error = err
+        }
+
+        expect(error.statusCode).toBe(400)
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "availability[1]",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+
+    })
+
+
+    test("Register validation accepts adjacent availability slots", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    },
+                    {
+                        day: "MONDAY",
+                        startTime: "12:00",
+                        endTime: "14:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        validateRegister(req, res, next)
+
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Register validation accepts same availability times on different days", () => {
+
+        const req = {
+            body: {
+                fullname: "Test Learner",
+                username: "testlearner",
+                email: "testlearner@gmail.com",
+                password: "Password@123",
+                accountType: "LEARNER",
+                languages: ["ENGLISH"],
+                availability: [
+                    {
+                        day: "MONDAY",
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    },
+                    {
+                        day: "TUESDAY",
+                        startTime: "10:00",
+                        endTime: "12:00"
+                    }
+                ]
+            }
+        }
+
+        const res = {}
+        const next = jest.fn()
+
+        validateRegister(req, res, next)
+
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
    
     // UNKNOWN FIELD
 
@@ -1768,6 +2634,7 @@ describe("Auth Validation", () => {
 
         const req = {
             body: {
+                availability: validAvailability,
                 fullname: "Test Learner",
                 username: "testlearner",
                 email: "testlearner@gmail.com",
@@ -1810,6 +2677,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "   Test Learner   ",
             username: "testlearner",
             email: "testlearner@gmail.com",
@@ -1834,6 +2702,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "A",
             username: "AB",
             email: "invalidemail",
@@ -1882,6 +2751,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "AB",
             username: "testlearner",
             email: "testlearner@gmail.com",
@@ -1905,6 +2775,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "A".repeat(60),
             username: "testlearner",
             email: "testlearner@gmail.com",
@@ -1928,6 +2799,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Learner",
             username: "abc",
             email: "testlearner@gmail.com",
@@ -1951,6 +2823,7 @@ describe("Auth Validation", () => {
 
     const req = {
         body: {
+            availability: validAvailability,
             fullname: "Test Learner",
             username: "a".repeat(30),
             email: "testlearner@gmail.com",
