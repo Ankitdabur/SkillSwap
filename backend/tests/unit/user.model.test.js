@@ -76,7 +76,8 @@ describe("User Model", () => {
         )
 
     }
-
+ 
+    //we used spyOn instead of cleaning
 
     afterEach(() => {
         jest.restoreAllMocks()
