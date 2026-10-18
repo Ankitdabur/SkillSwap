@@ -111,7 +111,9 @@ const upgradeAccountService = async (userId, upgradeData) => {
   const upgradedUser = await user.save();
 
 
-  return upgradedUser;
+  return {
+    user: upgradedUser
+  };
 };
 
 const getUserProfileService = async (userId) => {
@@ -127,7 +129,9 @@ const getUserProfileService = async (userId) => {
     );
   }
 
-  return user;
+  return {
+    user
+  };
 };
 
 const updateProfileService = async (userId , updateData) => {
@@ -160,7 +164,9 @@ const updateProfileService = async (userId , updateData) => {
 
   const updatedUser = await user.save()
 
-  return updatedUser
+  return {
+    user: updatedUser
+  }
 }
 
 const updateTeachingProfileService = async(updateData , userId) => {
@@ -211,7 +217,9 @@ const updateTeachingProfileService = async(updateData , userId) => {
 
     const updatedUser = await user.save()
 
-    return updatedUser;
+    return {
+        user: updatedUser
+    };
 }
 
 const changePasswordService = async( UserId , password ) => {
@@ -242,7 +250,7 @@ const changePasswordService = async( UserId , password ) => {
 
     await user.save()
 
-    return
+    return {}
 
 }
 

@@ -5,6 +5,8 @@ import { errorHandler } from "./middlewares/error.middleware.js"
 import { notFound } from "./middlewares/notFound.middleware.js"
 import authRouter from "./modules/auth/auth.routes.js"
 import userRouter from "./modules/users/user.routes.js"
+import availabilityRouter from "./modules/availability/availability.routes.js"
+import skillRouter from "./modules/skills/skill.routes.js"
 
 const app = express()
 
@@ -20,7 +22,8 @@ app.use(cookieparser())
 //routes
 app.use("/api/v1/auth" , authRouter)
 app.use("/api/v1/user" , userRouter)
-
+app.use("/api/v1/availability" , availabilityRouter )
+app.use("/api/v1/skills", skillRouter)
 //not found middleware
 app.use(notFound)
 

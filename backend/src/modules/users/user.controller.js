@@ -16,18 +16,22 @@ import {
 
 const getCurrentUser = asyncHandler (async (req , res) => {
 
+   const currentUserData = {
+    user: req.user
+   }
+
    return res
    .status(200)
    .json( 
     new ApiResponse(
     200,
-    req.user,
+    currentUserData,
     "Current user information fetched successfully"
    ))
 })
 
 const upgradeAccount = asyncHandler(async (req, res) => {
-  const upgradedUser = await upgradeAccountService(
+  const upgradedUserData = await upgradeAccountService(
     req.user._id,
     req.body,
   );
@@ -37,7 +41,7 @@ const upgradeAccount = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        upgradedUser,
+        upgradedUserData,
         "Account upgraded successfully",
       ),
     );
@@ -62,14 +66,14 @@ const updateProfile = asyncHandler (async (req , res) => {
         updateData.avatar = avatar.url
     }
 
-    const updatedUser = await updateProfileService(req.user._id , updateData)
+    const updatedUserData = await updateProfileService(req.user._id , updateData)
 
     res
     .status(200)
     .json(
         new ApiResponse(
             200,
-            updatedUser,
+            updatedUserData,
             "User profile updated successfully"
         )
     )
@@ -77,14 +81,14 @@ const updateProfile = asyncHandler (async (req , res) => {
 
 const getUserProfile = asyncHandler(async (req ,res) => {
     const {userId} = req.params
-    const user = await getUserProfileService(userId)
+    const userData = await getUserProfileService(userId)
     
     res
     .status(200)
     .json(
         new ApiResponse(
             200,
-            user,
+            userData,
             "user profile info fetched successfully"
         )
     )
@@ -93,14 +97,14 @@ const getUserProfile = asyncHandler(async (req ,res) => {
 
 const updateTeachingProfile = asyncHandler(async (req ,res) => {
 
-    const updatedUser = await updateTeachingProfileService(req.body , req.user._id)
+    const updatedUserData = await updateTeachingProfileService(req.body , req.user._id)
     
     return res
     .status(200)
     .json(
         new ApiResponse(
             200,
-            updatedUser,
+            updatedUserData,
             "teaching field updated successfully"
         )
     )
@@ -108,14 +112,14 @@ const updateTeachingProfile = asyncHandler(async (req ,res) => {
 
 const changePassword = asyncHandler ( async (req , res) => {
 
-    await changePasswordService (req.user._id , req.body)
+    const passwordData = await changePasswordService (req.user._id , req.body)
 
     return res
     .status(200)
     .json(
         new ApiResponse(
         200,
-        null,
+        passwordData,
         "Password changed successfully",
         ),
     );

@@ -73,9 +73,9 @@ describe("Account Upgrade", () => {
 
         expect(response.status).toBe(200)
         expect(response.data.message).toBe("Account upgraded successfully")
-        expect(response.data.data.accountType).toBe(ACCOUNT_TYPES.TEACHER)
-        expect(response.data.data.teachingSkills).toEqual([skill._id.toString()])
-        expect(response.data.data.teachingStyles).toEqual([TEACHING_STYLES.HANDS_ON])
+        expect(response.data.data.user.accountType).toBe(ACCOUNT_TYPES.TEACHER)
+        expect(response.data.data.user.teachingSkills).toEqual([skill._id.toString()])
+        expect(response.data.data.user.teachingStyles).toEqual([TEACHING_STYLES.HANDS_ON])
 
         const updatedUser = await User.findById(user._id)
 
@@ -100,9 +100,9 @@ describe("Account Upgrade", () => {
 
         expect(response.status).toBe(200)
         expect(response.data.message).toBe("Account upgraded successfully")
-        expect(response.data.data.accountType).toBe(ACCOUNT_TYPES.TEACHER_LEARNER)
-        expect(response.data.data.teachingSkills).toEqual([skill._id.toString()])
-        expect(response.data.data.teachingStyles).toEqual([TEACHING_STYLES.PROJECT_BASED])
+        expect(response.data.data.user.accountType).toBe(ACCOUNT_TYPES.TEACHER_LEARNER)
+        expect(response.data.data.user.teachingSkills).toEqual([skill._id.toString()])
+        expect(response.data.data.user.teachingStyles).toEqual([TEACHING_STYLES.PROJECT_BASED])
 
         const updatedUser = await User.findById(user._id)
 
@@ -121,11 +121,11 @@ describe("Account Upgrade", () => {
 
         expect(response.status).toBe(200)
         expect(response.data.message).toBe("Account upgraded successfully")
-        expect(response.data.data.accountType).toBe(ACCOUNT_TYPES.TEACHER_LEARNER)
-        expect(response.data.data.teachingSkills).toEqual(
+        expect(response.data.data.user.accountType).toBe(ACCOUNT_TYPES.TEACHER_LEARNER)
+        expect(response.data.data.user.teachingSkills).toEqual(
             user.teachingSkills.map((skillId) => skillId.toString())
         )
-        expect(response.data.data.teachingStyles).toEqual(user.teachingStyles)
+        expect(response.data.data.user.teachingStyles).toEqual(user.teachingStyles)
 
         const updatedUser = await User.findById(user._id)
 

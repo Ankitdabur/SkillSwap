@@ -1,13 +1,13 @@
 import {jest} from "@jest/globals"
 import mongoose from "mongoose"
 import bcrypt from "bcrypt"
-import User from "../../src/models/user.model.js"
+import User from "../../../src/models/user.model.js"
 import {
     USER_ROLES,
     ACCOUNT_TYPES,
     TEACHING_STYLES,
     LANGUAGES
-} from "../../src/constants/enums.js"
+} from "../../../src/constants/enums.js"
 
 
 describe("User Model", () => {

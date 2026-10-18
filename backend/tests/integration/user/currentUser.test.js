@@ -45,11 +45,11 @@ describe("Current User", () => {
 
         expect(response.status).toBe(200);
         expect(response.data.message).toBe("Current user information fetched successfully");
-        expect(response.data.data._id).toBe(user._id.toString());
-        expect(response.data.data.username).toBe(user.username);
-        expect(response.data.data.email).toBe(user.email);
-        expect(response.data.data.fullname).toBe(user.fullname);
-        expect(response.data.data.accountType).toBe(user.accountType);
+        expect(response.data.data.user._id).toBe(user._id.toString());
+        expect(response.data.data.user.username).toBe(user.username);
+        expect(response.data.data.user.email).toBe(user.email);
+        expect(response.data.data.user.fullname).toBe(user.fullname);
+        expect(response.data.data.user.accountType).toBe(user.accountType);
     });
 
     test("Current user response does not expose password or refresh token hash", async () => {
@@ -59,8 +59,8 @@ describe("Current User", () => {
         const response = await currentUserRequest(accessToken);
 
         expect(response.status).toBe(200);
-        expect(response.data.data.password).toBeUndefined();
-        expect(response.data.data.refreshTokenHash).toBeUndefined();
+        expect(response.data.data.user.password).toBeUndefined();
+        expect(response.data.data.user.refreshTokenHash).toBeUndefined();
     });
 
     test("User cannot get current user information without access token", async () => {

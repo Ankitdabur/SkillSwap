@@ -1,7 +1,7 @@
 import { jest } from "@jest/globals"
-import { requireRoles } from "../../src/middlewares/role.middleware.js"
-import { USER_ROLES } from "../../src/constants/enums.js"
-import { ERROR_CODES } from "../../src/constants/errorCodes.js"
+import { requireRoles } from "../../../src/middlewares/role.middleware.js"
+import { USER_ROLES } from "../../../src/constants/enums.js"
+import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
 
 
 describe("Role Middleware", () => {

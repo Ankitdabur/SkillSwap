@@ -1,6 +1,6 @@
 import {
     validateEnvironment
-} from "../../src/utils/validateEnvironment.js"
+} from "../../../src/utils/validateEnvironment.js"
 
 
 const originalEnvironment = {

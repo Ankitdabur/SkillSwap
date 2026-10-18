@@ -34,9 +34,8 @@ const registerUser = asyncHandler( async (req , res) => {
 const loginUser = asyncHandler (async (req , res) => {
 
 const {
-  user,
-  accessToken,
   refreshToken,
+  ...loginData
 } = await loginUserService(req.body);
 
 return res
@@ -49,10 +48,7 @@ return res
   .json(
     new ApiResponse(
       200,
-      {
-        user,
-        accessToken,
-      },
+      loginData,
       "User logged in successfully",
     ),
   );
@@ -73,8 +69,8 @@ const refreshAccessToken = asyncHandler (async (req , res) => {
   }
 
   const {
-    accessToken,
     refreshToken,
+    ...refreshData
   } = await refreshUserService(incomingRefreshToken);
 
   
@@ -89,9 +85,7 @@ const refreshAccessToken = asyncHandler (async (req , res) => {
     .json(
       new ApiResponse(
         200,
-        {
-          accessToken,
-        },
+        refreshData,
         "Access token refreshed successfully",
       ),
     );
@@ -99,14 +93,14 @@ const refreshAccessToken = asyncHandler (async (req , res) => {
 
 const logoutUser = asyncHandler (async (req , res) => {
 
- await logoutUserService(req.user._id)
+ const logoutData = await logoutUserService(req.user._id)
 
   return res
   .status(200)
   .clearCookie("refreshToken" , cookieOptions)
   .json(new ApiResponse(
     200,
-    {},
+    logoutData,
     "user logout successfully"
   ))
 

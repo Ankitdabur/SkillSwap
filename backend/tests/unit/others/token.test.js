@@ -7,21 +7,12 @@ import {
     verifyRefreshToken,
     hashRefreshToken,
     compareRefreshToken
-} from "../../src/utils/token.js"
-import { ERROR_CODES } from "../../src/constants/errorCodes.js"
+} from "../../../src/utils/token.js"
+import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
 
 
 describe("Token Utils", () => {
 
-    beforeAll(() => {
-
-        process.env.ACCESS_TOKEN_SECRET = "test-access-token-secret"
-        process.env.ACCESS_TOKEN_EXPIRY = "15m"
-
-        process.env.REFRESH_TOKEN_SECRET = "test-refresh-token-secret"
-        process.env.REFRESH_TOKEN_EXPIRY = "7d"
-
-    })
 
     // ACCESS TOKEN GENERATION
 

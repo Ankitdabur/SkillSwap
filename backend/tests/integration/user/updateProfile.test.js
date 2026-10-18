@@ -86,7 +86,7 @@ describe("Update Profile", () => {
 
         expect(response.status).toBe(200)
         expect(response.data.message).toBe("User profile updated successfully")
-        expect(response.data.data.fullname).toBe("Updated Learner")
+        expect(response.data.data.user.fullname).toBe("Updated Learner")
 
         const updatedUser = await User.findById(user._id)
 
@@ -105,7 +105,7 @@ describe("Update Profile", () => {
         }, accessToken)
 
         expect(response.status).toBe(200)
-        expect(response.data.data.languages).toEqual([
+        expect(response.data.data.user.languages).toEqual([
             LANGUAGES.ENGLISH,
             LANGUAGES.HINDI
         ])
@@ -131,8 +131,8 @@ describe("Update Profile", () => {
         }, accessToken)
 
         expect(response.status).toBe(200)
-        expect(response.data.data.fullname).toBe("Updated Learner")
-        expect(response.data.data.languages).toEqual([
+        expect(response.data.data.user.fullname).toBe("Updated Learner")
+        expect(response.data.data.user.languages).toEqual([
             LANGUAGES.ENGLISH,
             LANGUAGES.HINDI
         ])
@@ -157,11 +157,11 @@ describe("Update Profile", () => {
         )
 
         expect(response.status).toBe(200)
-        expect(response.data.data.avatar).toBeDefined()
+        expect(response.data.data.user.avatar).toBeDefined()
 
         const updatedUser = await User.findById(user._id)
 
-        expect(updatedUser.avatar).toBe(response.data.data.avatar)
+        expect(updatedUser.avatar).toBe(response.data.data.user.avatar)
     })
 
     test("User can update fullname languages and avatar together", async () => {
@@ -177,12 +177,12 @@ describe("Update Profile", () => {
         }, accessToken, TEST_AVATAR_PATH)
 
         expect(response.status).toBe(200)
-        expect(response.data.data.fullname).toBe("Updated Learner")
-        expect(response.data.data.languages).toEqual([
+        expect(response.data.data.user.fullname).toBe("Updated Learner")
+        expect(response.data.data.user.languages).toEqual([
             LANGUAGES.ENGLISH,
             LANGUAGES.HINDI
         ])
-        expect(response.data.data.avatar).toBeDefined()
+        expect(response.data.data.user.avatar).toBeDefined()
 
         const updatedUser = await User.findById(user._id)
 
@@ -191,7 +191,7 @@ describe("Update Profile", () => {
             LANGUAGES.ENGLISH,
             LANGUAGES.HINDI
         ])
-        expect(updatedUser.avatar).toBe(response.data.data.avatar)
+        expect(updatedUser.avatar).toBe(response.data.data.user.avatar)
     })
 
     test("Empty profile update request is rejected", async () => {

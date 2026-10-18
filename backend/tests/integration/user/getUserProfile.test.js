@@ -48,12 +48,12 @@ describe("Get User Profile", () => {
         const response = await getUserProfileRequest(teacher._id, accessToken);
 
         expect(response.status).toBe(200);
-        expect(response.data.data._id).toBe(teacher._id.toString());
-        expect(response.data.data.username).toBe(teacher.username);
-        expect(response.data.data.fullname).toBe(teacher.fullname);
-        expect(response.data.data.accountType).toBe(teacher.accountType);
-        expect(response.data.data.languages).toEqual(teacher.languages);
-        expect(response.data.data.teachingStyles).toEqual(teacher.teachingStyles);
+        expect(response.data.data.user._id).toBe(teacher._id.toString());
+        expect(response.data.data.user.username).toBe(teacher.username);
+        expect(response.data.data.user.fullname).toBe(teacher.fullname);
+        expect(response.data.data.user.accountType).toBe(teacher.accountType);
+        expect(response.data.data.user.languages).toEqual(teacher.languages);
+        expect(response.data.data.user.teachingStyles).toEqual(teacher.teachingStyles);
     });
 
     test("User profile does not expose private fields", async () => {
@@ -64,12 +64,12 @@ describe("Get User Profile", () => {
         const response = await getUserProfileRequest(teacher._id, accessToken);
 
         expect(response.status).toBe(200);
-        expect(response.data.data.email).toBeUndefined();
-        expect(response.data.data.password).toBeUndefined();
-        expect(response.data.data.refreshTokenHash).toBeUndefined();
-        expect(response.data.data.role).toBeUndefined();
-        expect(response.data.data.credits).toBeUndefined();
-        expect(response.data.data.reservedCredits).toBeUndefined();
+        expect(response.data.data.user.email).toBeUndefined();
+        expect(response.data.data.user.password).toBeUndefined();
+        expect(response.data.data.user.refreshTokenHash).toBeUndefined();
+        expect(response.data.data.user.role).toBeUndefined();
+        expect(response.data.data.user.credits).toBeUndefined();
+        expect(response.data.data.user.reservedCredits).toBeUndefined();
     });
 
     test("User cannot get profile without access token", async () => {

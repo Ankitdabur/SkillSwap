@@ -1,7 +1,7 @@
 import { jest } from "@jest/globals"
-import { requireAccountTypes } from "../../src/middlewares/accountType.middleware.js"
-import { ACCOUNT_TYPES } from "../../src/constants/enums.js"
-import { ERROR_CODES } from "../../src/constants/errorCodes.js"
+import { requireAccountTypes } from "../../../src/middlewares/accountType.middleware.js"
+import { ACCOUNT_TYPES } from "../../../src/constants/enums.js"
+import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
 
 
 describe("Account Type Middleware", () => {

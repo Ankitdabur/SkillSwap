@@ -331,7 +331,7 @@ const logoutUserService = async (userId) => {
     }
   )
 
-  return
+  return {}
 }
 
 

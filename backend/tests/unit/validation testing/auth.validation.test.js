@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
-import { validateRegister } from "../../src/modules/auth/auth.validation.js";
-import { ERROR_CODES } from "../../src/constants/errorCodes.js";
+import { validateRegister } from "../../../src/modules/auth/auth.validation.js";
+import { ERROR_CODES } from "../../../src/constants/errorCodes.js";
 
 describe("Auth Validation", () => {
 

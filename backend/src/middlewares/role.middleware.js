@@ -1,5 +1,6 @@
 import ApiError from "../utils/ApiError.js"
 import { ERROR_CODES } from "../constants/errorCodes.js"
+import {USER_ROLES} from "../constants/enums.js"
 
 const requireRoles = (...allowedRoles) => {
     return (req , res , next ) => {
@@ -23,4 +24,11 @@ const requireRoles = (...allowedRoles) => {
     }
 }
 
-export {requireRoles}
+
+const adminRoleMiddleware = requireRoles(USER_ROLES.ADMIN)
+
+export {
+    adminRoleMiddleware,
+    requireRoles,
+    
+}

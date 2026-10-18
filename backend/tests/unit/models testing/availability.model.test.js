@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
-import Availability from "../../src/models/availability.model.js"
-import {DAYS_OF_WEEK} from "../../src/constants/enums.js"
+import Availability from "../../../src/models/availability.model.js"
+import {DAYS_OF_WEEK} from "../../../src/constants/enums.js"
 
 
 describe("Availability Model", () => {

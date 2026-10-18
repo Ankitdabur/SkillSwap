@@ -69,7 +69,7 @@ describe("Update Teaching Profile", () => {
 
         expect(response.status).toBe(200)
         expect(response.data.message).toBe("teaching field updated successfully")
-        expect(response.data.data.teachingStyles).toEqual([
+        expect(response.data.data.user.teachingStyles).toEqual([
             TEACHING_STYLES.HANDS_ON,
             TEACHING_STYLES.PROJECT_BASED
         ])
@@ -96,7 +96,7 @@ describe("Update Teaching Profile", () => {
         }, accessToken)
 
         expect(response.status).toBe(200)
-        expect(response.data.data.teachingSkills).toEqual([
+        expect(response.data.data.user.teachingSkills).toEqual([
             skill._id.toString()
         ])
 
@@ -131,11 +131,11 @@ describe("Update Teaching Profile", () => {
         }, accessToken)
 
         expect(response.status).toBe(200)
-        expect(response.data.data.teachingSkills).toEqual([
+        expect(response.data.data.user.teachingSkills).toEqual([
             skillOne._id.toString(),
             skillTwo._id.toString()
         ])
-        expect(response.data.data.teachingStyles).toEqual([
+        expect(response.data.data.user.teachingStyles).toEqual([
             TEACHING_STYLES.HANDS_ON,
             TEACHING_STYLES.INTERACTIVE
         ])
@@ -166,7 +166,7 @@ describe("Update Teaching Profile", () => {
         }, accessToken)
 
         expect(response.status).toBe(200)
-        expect(response.data.data.teachingStyles).toEqual([
+        expect(response.data.data.user.teachingStyles).toEqual([
             TEACHING_STYLES.CONCEPT_FOCUSED
         ])
 
