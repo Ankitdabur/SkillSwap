@@ -1,11 +1,13 @@
 import mongoose from "mongoose"
 import User from "../../src/models/user.model.js"
 import Skill from "../../src/models/skill.model.js"
+import SkillRequest from "../../src/models/skillRequest.model.js"
 import {
     ACCOUNT_TYPES,
     TEACHING_STYLES,
     LANGUAGES,
-    SKILL_CATEGORIES
+    SKILL_CATEGORIES,
+    SKILL_REQUEST_STATUSES
 } from "../../src/constants/enums.js"
 
 const createTestLearner = async () => {
@@ -85,9 +87,29 @@ const createTestSkill = async (name, displayName) => {
     return skill
 }
 
+const createTestSkillRequest = async (
+    requestedBy,
+    name,
+    status = SKILL_REQUEST_STATUSES.PENDING
+) => {
+    const skillRequest = await SkillRequest.create({
+        requestedBy,
+        name,
+        category: SKILL_CATEGORIES.TECHNOLOGY_PROGRAMMING,
+        description: "Skill request created for integration testing",
+        status,
+        adminResponse: status === SKILL_REQUEST_STATUSES.REJECTED
+            ? "Skill request rejected for integration testing"
+            : null
+    })
+
+    return skillRequest
+}
+
 export {
     createTestLearner,
     createTestTeacher,
     createTestTeacherLearner,
-    createTestSkill
+    createTestSkill,
+    createTestSkillRequest
 }

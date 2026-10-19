@@ -7,6 +7,7 @@ import authRouter from "./modules/auth/auth.routes.js"
 import userRouter from "./modules/users/user.routes.js"
 import availabilityRouter from "./modules/availability/availability.routes.js"
 import skillRouter from "./modules/skills/skill.routes.js"
+import skillRequestRouter from "./modules/skillRequests/skillRequest.routes.js"
 
 const app = express()
 
@@ -24,6 +25,7 @@ app.use("/api/v1/auth" , authRouter)
 app.use("/api/v1/user" , userRouter)
 app.use("/api/v1/availability" , availabilityRouter )
 app.use("/api/v1/skills", skillRouter)
+app.use("/api/v1/skill-requests", skillRequestRouter)
 //not found middleware
 app.use(notFound)
 
