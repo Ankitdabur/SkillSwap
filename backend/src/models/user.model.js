@@ -178,6 +178,21 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+userSchema.index({
+  accountType: 1,
+  teachingSkills: 1,
+});
+
+userSchema.index({
+  teachingStyles: 1,
+});
+
+userSchema.index({
+  languages: 1,
+});
+
+
+
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) {
     return;

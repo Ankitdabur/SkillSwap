@@ -2,10 +2,15 @@ import axios from "axios";
 import mongoose from "mongoose";
 import app from "../../../src/app.js";
 import { dbconnect } from "../../../src/db/index.js";
+import Availability from "../../../src/models/availability.model.js";
 import { generateAccessToken } from "../../../src/utils/token.js";
+import { DAYS_OF_WEEK } from "../../../src/constants/enums.js";
 import { createTestLearner, createTestTeacher } from "../../helpers/createTestUser.js";
 import { authHeader } from "../../helpers/authHeader.js";
-import { cleanupTestUsers } from "../../helpers/cleanupTestData.js";
+import {
+    cleanupTestAvailability,
+    cleanupTestUsers
+} from "../../helpers/cleanupTestData.js";
 
 const PORT = process.env.PORT || 8000;
 const USER_PROFILE_URL = `http://localhost:${PORT}/api/v1/user`;
@@ -29,10 +34,12 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
+    await cleanupTestAvailability();
     await cleanupTestUsers();
 });
 
 afterAll(async () => {
+    await cleanupTestAvailability();
     await cleanupTestUsers();
     await new Promise((resolve) => server.close(resolve));
     await mongoose.disconnect();
@@ -45,6 +52,23 @@ describe("Get User Profile", () => {
         const { user: teacher } = await createTestTeacher();
         const accessToken = generateAccessToken(learner._id);
 
+        await Availability.create([
+            {
+                userId: teacher._id,
+                day: DAYS_OF_WEEK.MONDAY,
+                startTime: "10:00",
+                endTime: "12:00"
+            },
+            {
+                userId: teacher._id,
+                day: DAYS_OF_WEEK.TUESDAY,
+                startTime: "14:00",
+                endTime: "16:00"
+            }
+        ], {
+            ordered: true
+        });
+
         const response = await getUserProfileRequest(teacher._id, accessToken);
 
         expect(response.status).toBe(200);
@@ -54,6 +78,21 @@ describe("Get User Profile", () => {
         expect(response.data.data.user.accountType).toBe(teacher.accountType);
         expect(response.data.data.user.languages).toEqual(teacher.languages);
         expect(response.data.data.user.teachingStyles).toEqual(teacher.teachingStyles);
+        expect(response.data.data.availability).toHaveLength(2);
+        expect(response.data.data.availability).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    day: DAYS_OF_WEEK.MONDAY,
+                    startTime: "10:00",
+                    endTime: "12:00"
+                }),
+                expect.objectContaining({
+                    day: DAYS_OF_WEEK.TUESDAY,
+                    startTime: "14:00",
+                    endTime: "16:00"
+                })
+            ])
+        );
     });
 
     test("User profile does not expose private fields", async () => {

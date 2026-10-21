@@ -496,6 +496,8 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 ### Phase 2 Skills profiles availability and discovery
 
+**Status:** backend scope completed on 22 October 2026. Frontend work remains deliberately deferred and does not block this backend completion status. Discovery tests and final integration of completed `REGULAR` Session counts are deliberately deferred until the Session model is implemented; at that time, update the discovery service and add its unit and integration tests.
+
 **Goal:** make real teacher profiles searchable without AI.
 
 **Backend work**
@@ -716,6 +718,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 - Add security headers, strict CORS, payload limits, upload type/size checks, and secret management.
 - Add structured logs, request IDs, audit events for sensitive admin/credit actions, health checks, and alerts.
 - Add database backup/restore procedures and migration/index deployment steps.
+- At the end of all implementation phases, audit every model's indexes against its actual query, sorting, uniqueness, and pagination patterns. Remove redundant indexes and add any missing compound indexes before release.
 - Run unit, integration, transaction/concurrency, cron recovery, Socket.IO, authorization, and end-to-end tests.
 - Test accessibility, responsive behavior, loading states, empty states, and error recovery in the frontend.
 - Create staging and production configurations with separate databases and media credentials.
@@ -752,11 +755,11 @@ Resolve these explicitly; do not hide them in implementation details.
 
 ## Immediate Next Steps
 
-Phase 1 backend work is complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 2 backend capabilities:
+Phase 1 and Phase 2 backend work are complete. Graceful shutdown remains a deliberate Phase 10 hardening task. Discovery tests and its completed-Session scoring integration remain deliberate follow-ups for when the Session model is implemented. The next concrete work items are the Phase 3 backend capabilities:
 
-1. Complete predefined Skill catalog management and implement the SkillRequest workflow.
-2. Complete teaching-profile reads and updates using predefined Skill references.
-3. Make availability mandatory during registration and implement the shared weekly Availability CRUD workflow.
-4. Implement teacher discovery, safe public projections, pagination, and the required discovery indexes.
+1. Finalize and implement the Match model and its state transitions.
+2. Implement Match request, acceptance/rejection, removal, block, and unblock workflows.
+3. Implement Match notifications and safe connection-count updates.
+4. Implement paginated REST chat messages, read status, and soft deletion.
 
 Do not begin booking, credits, cron jobs, Socket.IO, or AI until their prerequisite phases and exit criteria are complete.
