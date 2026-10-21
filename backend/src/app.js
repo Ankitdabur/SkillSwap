@@ -8,6 +8,7 @@ import userRouter from "./modules/users/user.routes.js"
 import availabilityRouter from "./modules/availability/availability.routes.js"
 import skillRouter from "./modules/skills/skill.routes.js"
 import skillRequestRouter from "./modules/skillRequests/skillRequest.routes.js"
+import discoveryRouter from "./modules/discovery/discovery.routes.js"
 
 const app = express()
 
@@ -26,6 +27,7 @@ app.use("/api/v1/user" , userRouter)
 app.use("/api/v1/availability" , availabilityRouter )
 app.use("/api/v1/skills", skillRouter)
 app.use("/api/v1/skill-requests", skillRequestRouter)
+app.use("/api/v1/discovery", discoveryRouter)
 //not found middleware
 app.use(notFound)
 

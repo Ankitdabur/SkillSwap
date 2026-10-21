@@ -299,7 +299,14 @@ During registration and teaching-account upgrades, show the predefined categorie
 7. Apply the weighted compatibility calculation only to candidates who pass all applicable strict filters. Skill, selected teaching style, and common language are eligibility filters, not score bonuses.
 8. Return eligible teachers from highest to lowest compatibility.
 
-The finalized compatibility inputs are teacher rating, teacher `totalReviews`, availability match against the learner's preferred day/time, and the total number of `COMPLETED` `REGULAR` sessions taught by that teacher for the requested Skill. Derive the completed-session factor from the existing Session collection; do not add a denormalized counter to User or another collection. Exact weights and the exact formula are deliberately deferred until Phase 2, when discovery is implemented, and do not block Phase 1.
+The finalized compatibility inputs and weights are:
+
+- teacher rating: 30%;
+- availability match: 35%;
+- total `COMPLETED` `REGULAR` sessions taught by that teacher for the requested Skill: 25%;
+- teacher `totalReviews`: 10%.
+
+Normalize every component to a score from 0 to 100 and calculate the final score as `ratingScore * 0.30 + availabilityMatchScore * 0.35 + completedRegularSkillSessionsScore * 0.25 + totalReviewsScore * 0.10`. Calculate the rating subscore as `(teacher.rating / 5) * 100`. Calculate availability match by fetching the learner's and teacher's stored weekly Availability records and measuring their total overlapping time across matching weekdays; the learner does not submit a preferred day or time in the discovery request. Convert the total weekly overlap into the availability subscore using these finalized bands: at least 3 hours = 100, at least 2 hours but less than 3 hours = 60, at least 1 hour but less than 2 hours = 30, a positive overlap below 1 hour = 10, and no overlap = 0. Derive the completed-session factor from the existing Session collection; do not add a denormalized counter to User or another collection. Count only the teacher's `COMPLETED` `REGULAR` sessions for the requested Skill and convert the count into the experience subscore using these finalized bands: 0 sessions = 0, 1-2 sessions = 20, 3-5 sessions = 40, 6-10 sessions = 60, 11-20 sessions = 80, and at least 21 sessions = 100. Convert `totalReviews` into the review subscore using these finalized bands: 0 reviews = 0, 1-3 reviews = 20, 4-10 reviews = 40, 11-25 reviews = 60, 26-50 reviews = 80, and at least 51 reviews = 100.
 
 The AI assistant must call this same discovery service. It must not invent teachers or maintain a duplicate teacher database.
 
@@ -430,7 +437,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 - Frontend development is currently deferred while the backend is built and tested with Postman; choose the frontend framework and build tool when frontend development starts.
 - Teaching styles use the finalized multi-select enum values documented above.
-- Compatibility scoring is weighted and uses the finalized inputs documented above; exact weights and the exact formula are deferred until Phase 2.
+- Compatibility scoring uses the finalized inputs, weights, and weighted-sum formula documented above.
 - JWT access-token and refresh-token transport, storage, hashing, and rotation follow the strategy documented above.
 - Successful responses use `ApiResponse`; errors use `ApiError` with a stable central code; request validation is manual; pagination uses the mixed strategy documented above.
 - Backend environment and testing use `.env`, `dotenv`, direct `process.env` access, and the same database for development and testing for now.
@@ -741,8 +748,7 @@ Resolve these explicitly; do not hide them in implementation details.
 3. **Admin evidence storage:** evidence photos and individual deadlines are required, while a separate evidence collection and unapproved Session fields are excluded. Decide where approved metadata is stored before building that workflow.
 4. **Message history across reconnection:** Message has sender/receiver but no Match reference. Confirm whether a reconnected pair sees one continuous history or histories must be separated.
 5. **Recurring insufficient credits:** the skip-and-notify rule is provisional and must be reconfirmed in Phase 7.
-6. **Compatibility weights and formula:** the inputs are finalized, while exact weights and the exact formula are deliberately deferred until Phase 2 and do not block Phase 1.
-7. **AI privacy and cost:** provider, data retention, input limits, rate limits, and consent for long-chat summaries must be decided before Phase 9.
+6. **AI privacy and cost:** provider, data retention, input limits, rate limits, and consent for long-chat summaries must be decided before Phase 9.
 
 ## Immediate Next Steps
 

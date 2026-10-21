@@ -10,6 +10,7 @@ const skillSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      index : true
     },
     displayName: {
       type: String,

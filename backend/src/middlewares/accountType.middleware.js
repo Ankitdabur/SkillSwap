@@ -1,5 +1,6 @@
 import ApiError from "../utils/ApiError.js"
 import { ERROR_CODES } from "../constants/errorCodes.js"
+import { ACCOUNT_TYPES } from "../constants/enums.js"
 
 const requireAccountTypes = (...allowedAccountType) => {
     return (req , res , next) => {
@@ -23,4 +24,9 @@ const requireAccountTypes = (...allowedAccountType) => {
     }
 }
 
-export {requireAccountTypes}
+const learningAccountMiddleware = requireAccountTypes(ACCOUNT_TYPES.LEARNER , ACCOUNT_TYPES.TEACHER_LEARNER)
+
+export {
+    requireAccountTypes,
+    learningAccountMiddleware
+}

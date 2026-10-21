@@ -1,6 +1,6 @@
 import User from "../../models/user.model.js";
 import Skill from "../../models/skill.model.js";
-
+import Availability from "../../models/availability.model.js";
 import ApiError from "../../utils/ApiError.js";
 
 import { ERROR_CODES } from "../../constants/errorCodes.js";
@@ -129,8 +129,11 @@ const getUserProfileService = async (userId) => {
     );
   }
 
+  const availability = await Availability.find({userId}).select("day startTime endTime")
+
   return {
-    user
+    user,
+    availability
   };
 };
 
