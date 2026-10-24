@@ -9,7 +9,7 @@ import availabilityRouter from "./modules/availability/availability.routes.js"
 import skillRouter from "./modules/skills/skill.routes.js"
 import skillRequestRouter from "./modules/skillRequests/skillRequest.routes.js"
 import discoveryRouter from "./modules/discovery/discovery.routes.js"
-
+import matchRouter from "./modules/matches/match.routes.js"
 const app = express()
 
 app.use(cors(
@@ -28,6 +28,7 @@ app.use("/api/v1/availability" , availabilityRouter )
 app.use("/api/v1/skills", skillRouter)
 app.use("/api/v1/skill-requests", skillRequestRouter)
 app.use("/api/v1/discovery", discoveryRouter)
+app.use("/api/v1/matches" , matchRouter)
 //not found middleware
 app.use(notFound)
 

@@ -238,6 +238,10 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 - `RecurringSchedule.credits` stores the agreed credits per generated occurrence.
 - A Session can have multiple Reviews, but only one per reviewer. Enforce a unique compound index on `{ session, reviewer }`.
 - `CreditTransaction.session` may be null for an administrative or bonus transaction.
+- A Match contains `sender`, `receiver`, `pairKey`, `status`, and `blockedBy`, plus MongoDB/Mongoose-generated `_id`, `createdAt`, and `updatedAt` fields. `sender` and `receiver` are immutable and must identify different users.
+- Match status supports only `PENDING`, `ACCEPTED`, and `BLOCKED`. Rejection, cancellation, removal, and unblocking delete the Match document instead of storing terminal status values.
+- `Match.pairKey` is an internal, server-generated value made by sorting the two participant ObjectId strings and joining them. It is required, immutable, hidden from normal query results, and unique, so the same unordered pair cannot have separate forward and reverse Match documents.
+- `Match.blockedBy` is required only when status is `BLOCKED`, must identify one of the two participants, and is otherwise null.
 
 ### Important collection relationships
 
@@ -245,8 +249,8 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 - Each Skill belongs to one predefined category. Categories do not create a separate collection.
 - Availability records belong to one User and form that user's mandatory single shared weekly schedule, which is first collected during registration and may be updated later. Store the schedule in the Availability collection rather than duplicating availability fields on User. A `TEACHER_LEARNER` uses the same schedule for both teaching and learning; do not add separate teaching/learning schedules.
 - A Match connects two users and is independent of skill.
-- A Match can contain many Sessions.
-- A Session references one Match, teacher, learner, and Skill; it may also reference one RecurringSchedule.
+- A Match controls whether two users are currently permitted to create a Session, but Sessions do not store a Match reference.
+- A Session references its teacher, learner, and Skill; it may also reference one RecurringSchedule. When a Session is created, query the Match collection and require an `ACCEPTED` Match between the teacher and learner, but do not copy the Match `_id` into the Session document.
 - A RecurringSchedule creates many separate Session documents.
 - A Session can have at most two Reviews: one from each participant.
 - A Message directly references its sender and receiver. It does not create a separate conversation collection.
@@ -260,9 +264,9 @@ Finalize enum values and query shapes before migration, then create indexes for 
 - User: unique email and unique username; teaching skills, teaching styles, and languages for discovery.
 - Skill: normal unique index on the lowercase canonical `name`; do not create duplicate Skills that differ only by case. A case-insensitive collation is not required because `name` is normalized before storage.
 - SkillRequest: status and creation time; requestedBy and creation time.
-- Match: sender/receiver/status queries in both participant directions.
+- Match: unique `pairKey`; `{ sender, status, createdAt }`; and `{ receiver, status, createdAt }`. A normal unique `pairKey` index is sufficient because rejected, cancelled, removed, and unblocked Matches are deleted rather than retained as terminal documents.
 - Availability: user and day.
-- Session: participants plus scheduledAt; match plus createdAt; status plus scheduledAt; recurringSchedule plus scheduledAt; `{ teacher, skill, sessionType, status }` for completed regular-session counts.
+- Session: participants plus scheduledAt; status plus scheduledAt; recurringSchedule plus scheduledAt; `{ teacher, skill, sessionType, status }` for completed regular-session counts. Do not create a Match-based Session index because Session documents do not store a Match reference.
 - CreditTransaction: user plus createdAt; session; and a unique idempotency constraint matching the finalized debit/credit record design.
 - RecurringSchedule: status plus date window; teacher; learner.
 - Message: sender/receiver plus createdAt; receiver plus isRead.
@@ -312,14 +316,20 @@ The AI assistant must call this same discovery service. It must not invent teach
 
 ### Match lifecycle
 
-The core Match states include pending, accepted, removed, rejected where supported by the finalized enum, and blocked.
+The only persisted Match states are `PENDING`, `ACCEPTED`, and `BLOCKED`. A unique server-generated `pairKey` represents the unordered pair, so only one Match document can exist between the same two users regardless of request direction.
 
-- Only an accepted Match permits normal chat or booking.
-- Removing a connection changes the existing Match to `REMOVED`; it does not delete history.
-- Blocking records `blockedBy`. Only the original blocker can unblock.
-- Removed or blocked chat history remains readable but becomes read-only.
-- Reconnecting creates a new Match document.
-- Both users' denormalized `connections` counts must change atomically with acceptance/removal when possible.
+- Creating a request creates a `PENDING` Match. A repeated same-direction request or a reverse-direction request while that Match is pending returns `409`; the existing document is not changed.
+- Only the receiver may accept or reject a pending request. Acceptance changes `PENDING` to `ACCEPTED`; rejection deletes the Match document.
+- The sender may cancel an outgoing pending request. Cancellation deletes the Match document.
+- A new request against an existing `ACCEPTED` or `BLOCKED` Match returns `409` and leaves the existing document unchanged.
+- Either participant may remove an accepted connection. Removal deletes the Match document and decrements both users' denormalized `connections` counts.
+- Either user may block the other even when no Match currently exists. Blocking creates a `BLOCKED` Match when necessary or changes the existing `PENDING` or `ACCEPTED` Match to `BLOCKED`; `blockedBy` records the blocker. Blocking an accepted connection decrements both users' connection counts.
+- Only the user recorded in `blockedBy` may unblock. Unblocking deletes the Match document.
+- After rejection, cancellation, removal, or unblocking, the pair may reconnect by creating a new `PENDING` Match.
+- Only an `ACCEPTED` Match permits new normal messages or Session creation.
+- A `BLOCKED` Match provides complete mutual isolation: neither participant may send a Match request, send a new message, create a Session with the other, see the other in discovery results, or view the other's public profile. A blocked public-profile request returns `404` so the API does not reveal whether the profile exists.
+- Removing or blocking does not delete existing Message documents. Existing message history remains readable but no new messages may be sent. Because Messages reference sender and receiver rather than Match, a reconnected pair sees the same continuous message history.
+- Acceptance, removal, and blocking changes that affect connection counts must use MongoDB transactions so the Match transition and both User counter changes succeed or fail together. Use conditional Match updates containing the expected current status to prevent concurrent requests from incrementing or decrementing counts more than once.
 
 ### Session booking
 
@@ -369,7 +379,7 @@ Only real user actions set `teacherConfirmedAt` or `learnerConfirmedAt`. Automat
 
 - A RecurringSchedule is accepted once by the teacher.
 - Each generated occurrence is a separate, automatically accepted Session.
-- Each generated Session references its RecurringSchedule and Match and inherits the schedule's credits.
+- Each generated Session references its RecurringSchedule and inherits the schedule's credits. It does not store a Match reference.
 - Reserve credits separately for each generated regular occurrence.
 - Generation must be idempotent and able to recover after downtime.
 - The current provisional insufficient-credit behavior is to skip the occurrence, notify both participants, and keep the schedule active. Reconfirm the details before implementation.
@@ -445,7 +455,6 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 **Decide before the relevant later phase**
 
 - Session price proposal/negotiation API and UI.
-- Match duplicate-request policy and concurrency behavior without a `pairKey` field.
 - CreditTransaction debit/credit audit-record shape and its exact-once unique index.
 - Admin evidence metadata location because the current schema does not define evidence fields or a separate evidence collection.
 - Recurring generation horizon and provisional insufficient-credit details.
@@ -531,11 +540,12 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 **Backend work**
 
-- Implement Match request, acceptance/rejection, removal, block, and unblock transitions.
-- Maintain connection counts safely.
+- Implement Match request, acceptance, rejection-by-deletion, cancellation-by-deletion, removal-by-deletion, block, and unblock-by-deletion transitions.
+- Enforce unordered pair uniqueness with `pairKey`, reject duplicate/reverse requests, and maintain connection counts through transactions and conditional state updates.
 - Implement Notification creation/list/read behavior for Match events.
 - Implement paginated REST messages, read status, and soft deletion.
-- Enforce read-only history for removed or blocked relationships.
+- Preserve continuous readable message history while preventing new messages after removal or blocking.
+- Exclude blocked users from each other's discovery results and return `404` when either tries to view the other's public profile.
 
 **Frontend work**
 
@@ -548,7 +558,8 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 - Users cannot message without an accepted Match.
 - Match transitions reject unauthorized and stale requests.
-- Removal/blocking preserves readable history and prevents new messages.
+- Rejection, cancellation, removal, and unblocking delete the Match document; blocking retains one `BLOCKED` document.
+- Removal/blocking preserves readable history and prevents new messages; blocking also prevents discovery visibility, public-profile access, Match requests, and Sessions in both directions.
 - Reconnection creates a new Match.
 
 ### Phase 4 Session booking demos and cancellation
@@ -557,7 +568,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 **Backend work**
 
-- Implement Session request/list/detail using Match, participant, account-type, Skill, and availability validation.
+- Implement Session request/list/detail using participant, account-type, Skill, and availability validation. At creation time, query for an `ACCEPTED` Match between the participants as an authorization prerequisite, without storing its `_id` in the Session.
 - Support `REGULAR` and `DEMO` in the same workflow.
 - Allow overlapping pending requests.
 - On acceptance, detect conflicts for both participants and reject conflicting pending requests.
@@ -746,19 +757,17 @@ Each phase should add tests for both allowed behavior and attempts by the wrong 
 
 Resolve these explicitly; do not hide them in implementation details.
 
-1. **Match pair uniqueness:** `pairKey` is rejected, but concurrent reverse-direction requests are difficult to prevent with a simple unique index. Define the exact duplicate-request policy and consistency mechanism before Phase 3.
-2. **Credit ledger shape:** exactly-once transfer needs a unique database guard. Finalize whether CreditTransaction stores one signed row per user or another approved representation before Phase 5.
-3. **Admin evidence storage:** evidence photos and individual deadlines are required, while a separate evidence collection and unapproved Session fields are excluded. Decide where approved metadata is stored before building that workflow.
-4. **Message history across reconnection:** Message has sender/receiver but no Match reference. Confirm whether a reconnected pair sees one continuous history or histories must be separated.
-5. **Recurring insufficient credits:** the skip-and-notify rule is provisional and must be reconfirmed in Phase 7.
-6. **AI privacy and cost:** provider, data retention, input limits, rate limits, and consent for long-chat summaries must be decided before Phase 9.
+1. **Credit ledger shape:** exactly-once transfer needs a unique database guard. Finalize whether CreditTransaction stores one signed row per user or another approved representation before Phase 5.
+2. **Admin evidence storage:** evidence photos and individual deadlines are required, while a separate evidence collection and unapproved Session fields are excluded. Decide where approved metadata is stored before building that workflow.
+3. **Recurring insufficient credits:** the skip-and-notify rule is provisional and must be reconfirmed in Phase 7.
+4. **AI privacy and cost:** provider, data retention, input limits, rate limits, and consent for long-chat summaries must be decided before Phase 9.
 
 ## Immediate Next Steps
 
 Phase 1 and Phase 2 backend work are complete. Graceful shutdown remains a deliberate Phase 10 hardening task. Discovery tests and its completed-Session scoring integration remain deliberate follow-ups for when the Session model is implemented. The next concrete work items are the Phase 3 backend capabilities:
 
-1. Finalize and implement the Match model and its state transitions.
-2. Implement Match request, acceptance/rejection, removal, block, and unblock workflows.
+1. Implement the finalized Match model with `pairKey`, the three Match statuses, and the approved indexes.
+2. Implement Match request, acceptance, rejection, cancellation, removal, block, and unblock workflows with the finalized deletion semantics.
 3. Implement Match notifications and safe connection-count updates.
 4. Implement paginated REST chat messages, read status, and soft deletion.
 
