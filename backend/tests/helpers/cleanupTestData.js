@@ -2,6 +2,7 @@ import User from "../../src/models/user.model.js"
 import Skill from "../../src/models/skill.model.js"
 import Availability from "../../src/models/availability.model.js"
 import SkillRequest from "../../src/models/skillRequest.model.js"
+import Match from "../../src/models/match.model.js"
 
 const cleanupTestUsers = async () => {
     await User.deleteMany({
@@ -101,11 +102,54 @@ const cleanupTestSkillRequests = async () => {
     })
 }
 
+const cleanupTestMatches = async () => {
+    const testUsers = await User.find({
+        $or: [
+            {
+                username: {
+                    $in: [
+                        "testlearner",
+                        "testteacher",
+                        "testteacherlearner"
+                    ]
+                }
+            },
+            {
+                email: {
+                    $in: [
+                        "testlearner@gmail.com",
+                        "testteacher@gmail.com",
+                        "testteacherlearner@gmail.com"
+                    ]
+                }
+            }
+        ]
+    }).select("_id")
+
+    const testUserIds = testUsers.map((user) => user._id)
+
+    await Match.deleteMany({
+        $or: [
+            {
+                sender: {
+                    $in: testUserIds
+                }
+            },
+            {
+                receiver: {
+                    $in: testUserIds
+                }
+            }
+        ]
+    })
+}
+
 export {
     cleanupTestUsers,
     cleanupTestAvailability,
     cleanupTestSkills,
-    cleanupTestSkillRequests
+    cleanupTestSkillRequests,
+    cleanupTestMatches
 }
 
 

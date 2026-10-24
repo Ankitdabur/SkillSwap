@@ -4,11 +4,20 @@ import app from "../../../src/app.js";
 import { dbconnect } from "../../../src/db/index.js";
 import Availability from "../../../src/models/availability.model.js";
 import { generateAccessToken } from "../../../src/utils/token.js";
-import { DAYS_OF_WEEK } from "../../../src/constants/enums.js";
-import { createTestLearner, createTestTeacher } from "../../helpers/createTestUser.js";
+import {
+    DAYS_OF_WEEK,
+    MATCH_STATUSES
+} from "../../../src/constants/enums.js";
+import { ERROR_CODES } from "../../../src/constants/errorCodes.js";
+import {
+    createTestLearner,
+    createTestTeacher,
+    createTestMatch
+} from "../../helpers/createTestUser.js";
 import { authHeader } from "../../helpers/authHeader.js";
 import {
     cleanupTestAvailability,
+    cleanupTestMatches,
     cleanupTestUsers
 } from "../../helpers/cleanupTestData.js";
 
@@ -35,11 +44,13 @@ beforeAll(async () => {
 
 afterEach(async () => {
     await cleanupTestAvailability();
+    await cleanupTestMatches();
     await cleanupTestUsers();
 });
 
 afterAll(async () => {
     await cleanupTestAvailability();
+    await cleanupTestMatches();
     await cleanupTestUsers();
     await new Promise((resolve) => server.close(resolve));
     await mongoose.disconnect();
@@ -136,6 +147,48 @@ describe("Get User Profile", () => {
         const response = await getUserProfileRequest(nonExistingUserId, accessToken);
 
         expect(response.status).toBe(404);
+    });
+
+    test("Blocker cannot view the blocked user's profile", async () => {
+        const { user: blocker } = await createTestLearner();
+        const { user: blockedUser } = await createTestTeacher();
+        const accessToken = generateAccessToken(blocker._id);
+
+        await createTestMatch(
+            blocker._id,
+            blockedUser._id,
+            MATCH_STATUSES.BLOCKED,
+            blocker._id
+        );
+
+        const response = await getUserProfileRequest(
+            blockedUser._id,
+            accessToken
+        );
+
+        expect(response.status).toBe(404);
+        expect(response.data.code).toBe(ERROR_CODES.USER_NOT_FOUND);
+    });
+
+    test("Blocked user cannot view the blocker's profile", async () => {
+        const { user: blocker } = await createTestLearner();
+        const { user: blockedUser } = await createTestTeacher();
+        const accessToken = generateAccessToken(blockedUser._id);
+
+        await createTestMatch(
+            blocker._id,
+            blockedUser._id,
+            MATCH_STATUSES.BLOCKED,
+            blocker._id
+        );
+
+        const response = await getUserProfileRequest(
+            blocker._id,
+            accessToken
+        );
+
+        expect(response.status).toBe(404);
+        expect(response.data.code).toBe(ERROR_CODES.USER_NOT_FOUND);
     });
 
 });

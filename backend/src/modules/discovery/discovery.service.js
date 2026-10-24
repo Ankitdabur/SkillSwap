@@ -1,9 +1,13 @@
 import User from "../../models/user.model.js"
 import Skill from "../../models/skill.model.js"
 import Availability from "../../models/availability.model.js"
+import Match from "../../models/match.model.js"
 import ApiError from "../../utils/ApiError.js"
 import { ERROR_CODES } from "../../constants/errorCodes.js"
-import { ACCOUNT_TYPES } from "../../constants/enums.js"
+import {
+    ACCOUNT_TYPES,
+    MATCH_STATUSES
+} from "../../constants/enums.js"
 import mongoose from "mongoose"
 import {
     getTotalOverlapMinutes,
@@ -46,9 +50,33 @@ const discoverTeachersService = async ( learnerId, discoveryQuery) => {
     }
 
 
+    const blockedMatches = await Match.find({
+        status: MATCH_STATUSES.BLOCKED,
+        $or: [
+            {
+                sender: learner._id
+            },
+            {
+                receiver: learner._id
+            }
+        ]
+    }).select("sender receiver")
+
+    const blockedUserIds = blockedMatches.map((match) => {
+        if(match.sender.equals(learner._id)){
+            return match.receiver
+        }
+
+        return match.sender
+    })
+
+
     const teacherMatch = {
         _id: {
-            $ne: learner._id
+            $nin: [
+                learner._id,
+                ...blockedUserIds
+            ]
         },
 
         accountType: {

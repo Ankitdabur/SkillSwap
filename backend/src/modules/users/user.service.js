@@ -1,10 +1,14 @@
 import User from "../../models/user.model.js";
 import Skill from "../../models/skill.model.js";
 import Availability from "../../models/availability.model.js";
+import Match from "../../models/match.model.js";
 import ApiError from "../../utils/ApiError.js";
 
 import { ERROR_CODES } from "../../constants/errorCodes.js";
-import { ACCOUNT_TYPES } from "../../constants/enums.js";
+import {
+  ACCOUNT_TYPES,
+  MATCH_STATUSES,
+} from "../../constants/enums.js";
 import { TEACHING_STYLES } from "../../constants/enums.js";
 
 const upgradeAccountService = async (userId, upgradeData) => {
@@ -116,7 +120,27 @@ const upgradeAccountService = async (userId, upgradeData) => {
   };
 };
 
-const getUserProfileService = async (userId) => {
+const getUserProfileService = async (loggedInUserId, userId) => {
+  const pairKey = [
+    loggedInUserId.toString(),
+    userId.toString(),
+  ]
+    .sort()
+    .join(":");
+
+  const blockedMatchExists = await Match.exists({
+    pairKey,
+    status: MATCH_STATUSES.BLOCKED,
+  });
+
+  if (blockedMatchExists) {
+    throw new ApiError(
+      404,
+      "User not found",
+      ERROR_CODES.USER_NOT_FOUND,
+    );
+  }
+
   const user = await User.findById(userId).select(
     "_id username fullname avatar accountType languages teachingSkills teachingStyles rating totalReviews connections",
   );

@@ -2,12 +2,14 @@ import mongoose from "mongoose"
 import User from "../../src/models/user.model.js"
 import Skill from "../../src/models/skill.model.js"
 import SkillRequest from "../../src/models/skillRequest.model.js"
+import Match from "../../src/models/match.model.js"
 import {
     ACCOUNT_TYPES,
     TEACHING_STYLES,
     LANGUAGES,
     SKILL_CATEGORIES,
-    SKILL_REQUEST_STATUSES
+    SKILL_REQUEST_STATUSES,
+    MATCH_STATUSES
 } from "../../src/constants/enums.js"
 
 const createTestLearner = async () => {
@@ -106,10 +108,44 @@ const createTestSkillRequest = async (
     return skillRequest
 }
 
+const createTestMatch = async (
+    senderId,
+    receiverId,
+    status = MATCH_STATUSES.PENDING,
+    blockedBy = null
+) => {
+    const match = await Match.create({
+        sender: senderId,
+        receiver: receiverId,
+        status,
+        blockedBy: status === MATCH_STATUSES.BLOCKED
+            ? blockedBy || senderId
+            : null
+    })
+
+    if(status === MATCH_STATUSES.ACCEPTED){
+        await User.updateMany(
+            {
+                _id: {
+                    $in: [senderId, receiverId]
+                }
+            },
+            {
+                $inc: {
+                    connections: 1
+                }
+            }
+        )
+    }
+
+    return match
+}
+
 export {
     createTestLearner,
     createTestTeacher,
     createTestTeacherLearner,
     createTestSkill,
-    createTestSkillRequest
+    createTestSkillRequest,
+    createTestMatch
 }

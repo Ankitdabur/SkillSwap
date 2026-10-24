@@ -81,7 +81,10 @@ const updateProfile = asyncHandler (async (req , res) => {
 
 const getUserProfile = asyncHandler(async (req ,res) => {
     const {userId} = req.params
-    const userData = await getUserProfileService(userId)
+    const userData = await getUserProfileService(
+        req.user._id,
+        userId
+    )
     
     res
     .status(200)
