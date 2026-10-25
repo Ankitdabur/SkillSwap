@@ -7,6 +7,7 @@ import {discoverTeachers} from "./discovery.controller.js"
 const router = Router()
 
 
+// Discover compatible teachers for a requested Skill
 router.get(
     "/teachers",
     verifyJWT,

@@ -3,8 +3,12 @@ import mongoose from "mongoose"
 import app from "../../../src/app.js"
 import { dbconnect } from "../../../src/db/index.js"
 import Match from "../../../src/models/match.model.js"
+import Notification from "../../../src/models/notification.model.js"
 import { generateAccessToken } from "../../../src/utils/token.js"
-import { MATCH_STATUSES } from "../../../src/constants/enums.js"
+import {
+    MATCH_STATUSES,
+    NOTIFICATION_TYPES
+} from "../../../src/constants/enums.js"
 import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
 import {
     createTestLearner,
@@ -14,6 +18,7 @@ import {
 import { authHeader } from "../../helpers/authHeader.js"
 import {
     cleanupTestMatches,
+    cleanupTestNotifications,
     cleanupTestUsers
 } from "../../helpers/cleanupTestData.js"
 
@@ -49,12 +54,14 @@ beforeAll(async () => {
 
 afterEach(async () => {
     await cleanupTestMatches()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
 })
 
 
 afterAll(async () => {
     await cleanupTestMatches()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
     await new Promise((resolve) => server.close(resolve))
     await mongoose.disconnect()
@@ -95,6 +102,17 @@ describe("Send Match Request", () => {
 
         expect(savedMatch).not.toBeNull()
         expect(savedMatch.pairKey).toBeDefined()
+
+        const notification = await Notification.findOne({
+            recipient: receiver._id,
+            type: NOTIFICATION_TYPES.MATCH_REQUEST_RECEIVED
+        })
+
+        expect(notification).not.toBeNull()
+        expect(notification.message).toBe(
+            `${sender.username} sent you a Match request`
+        )
+        expect(notification.isRead).toBe(false)
     })
 
 

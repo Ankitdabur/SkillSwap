@@ -16,11 +16,14 @@ const router = Router()
 
 
 
+// Register a new user account
 router.post("/register", upload.single("avatar") , validateRegister , registerUser);
+// Log in a user and issue authentication tokens
 router.post("/login" , validateLogin , loginUser)
+// Issue a new access token using a refresh token
 router.post("/refresh" , refreshAccessToken)
-
 //secured routes
+// Log out the current user and invalidate the refresh token
 router.post("/logout" , verifyJWT , logoutUser)
 
 

@@ -184,7 +184,10 @@ const rejectSkillRequest = asyncHandler(async (req, res) => {
 
     const {skillRequestId} = req.params
 
-    const rejectedSkillRequestData = await rejectSkillRequestService(skillRequestId,req.body.adminResponse)
+    const rejectedSkillRequestData = await rejectSkillRequestService(
+        skillRequestId,
+        req.body.adminResponse
+    )
 
     return res
     .status(200)

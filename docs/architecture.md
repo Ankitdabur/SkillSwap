@@ -679,6 +679,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 - Authorize rooms using the same Match/user rules as REST.
 - Emit message and notification events only after database writes succeed.
 - Add reconnect and missed-event recovery through REST queries.
+- Before implementing Socket.IO delivery or introducing Redis caching, finalize and implement stable pagination snapshots for real-time lists. Use an approved cursor and snapshot boundary/watermark so newly inserted records do not shift already loaded pages or cause skipped or duplicate records; any Redis cache must preserve the same pagination contract.
 
 **Frontend work**
 

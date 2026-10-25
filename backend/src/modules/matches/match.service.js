@@ -3,20 +3,14 @@ import Match from "../../models/match.model.js"
 import User from "../../models/user.model.js"
 import ApiError from "../../utils/ApiError.js"
 import { ERROR_CODES } from "../../constants/errorCodes.js"
-import { MATCH_STATUSES } from "../../constants/enums.js"
+import {
+    MATCH_STATUSES,
+    NOTIFICATION_TYPES
+} from "../../constants/enums.js"
+import { createNotificationService } from "../notifications/notification.service.js"
 
 
 const sendMatchRequestService = async (senderId, receiverId) => {
-
-    const receiverExists = await User.exists({_id: receiverId})
-
-    if(!receiverExists){
-        throw new ApiError(
-            404,
-            "Receiver not found",
-            ERROR_CODES.USER_NOT_FOUND
-        )
-    }
 
     const pairKey = [
         senderId.toString(),
@@ -25,32 +19,81 @@ const sendMatchRequestService = async (senderId, receiverId) => {
         .sort()
         .join(":")
 
-    const existingMatch = await Match.findOne({pairKey})
+    const session = await mongoose.startSession()
 
-    if(existingMatch){
-        let message = "Match already exists"
-
-        if(existingMatch.status === MATCH_STATUSES.PENDING){
-            message = "Pending Match request already exists"
-        }else if(existingMatch.status === MATCH_STATUSES.ACCEPTED){
-            message = "Users are already matched"
-        }else if(existingMatch.status === MATCH_STATUSES.BLOCKED){
-            message = "Match request cannot be created"
-        }
-
-        throw new ApiError(
-            409,
-            message,
-            ERROR_CODES.RESOURCE_ALREADY_EXISTS
-        )
-    }
-
-    let createdMatch
+    let match
 
     try {
-        createdMatch = await Match.create({
-            sender: senderId,
-            receiver: receiverId
+        await session.withTransaction(async () => {
+
+            const receiverExists = await User.exists({
+                _id: receiverId
+            }).session(session)
+
+            if(!receiverExists){
+                throw new ApiError(
+                    404,
+                    "Receiver not found",
+                    ERROR_CODES.USER_NOT_FOUND
+                )
+            }
+
+            const sender = await User.findById(senderId)
+            .select("username")
+            .session(session)
+
+            if(!sender){
+                throw new ApiError(
+                    404,
+                    "Sender not found",
+                    ERROR_CODES.USER_NOT_FOUND
+                )
+            }
+
+            const existingMatch = await Match.findOne({pairKey})
+            .session(session)
+
+            if(existingMatch){
+                let message = "Match already exists"
+
+                if(existingMatch.status === MATCH_STATUSES.PENDING){
+                    message = "Pending Match request already exists"
+                }else if(existingMatch.status === MATCH_STATUSES.ACCEPTED){
+                    message = "Users are already matched"
+                }else if(existingMatch.status === MATCH_STATUSES.BLOCKED){
+                    message = "Match request cannot be created"
+                }
+
+                throw new ApiError(
+                    409,
+                    message,
+                    ERROR_CODES.RESOURCE_ALREADY_EXISTS
+                )
+            }
+
+            const createdMatches = await Match.create(
+                [
+                    {
+                        sender: senderId,
+                        receiver: receiverId
+                    }
+                ],
+                {
+                    session
+                }
+            )
+
+            match = await Match.findById(createdMatches[0]._id)
+            .session(session)
+
+            await createNotificationService(
+                {
+                    recipient: receiverId,
+                    type: NOTIFICATION_TYPES.MATCH_REQUEST_RECEIVED,
+                    message: `${sender.username} sent you a Match request`
+                },
+                session
+            )
         })
     } catch (error) {
         if(error?.code === 11000){
@@ -62,9 +105,9 @@ const sendMatchRequestService = async (senderId, receiverId) => {
         }
 
         throw error
+    } finally {
+        await session.endSession()
     }
-
-    const match = await Match.findById(createdMatch._id)
 
     return {match}
 }
@@ -206,6 +249,19 @@ const acceptMatchService = async (loggedInUser, matchId) => {
                     ERROR_CODES.USER_NOT_FOUND
                 )
             }
+
+            const receiver = await User.findById(loggedInUser)
+            .select("username")
+            .session(session)
+
+            await createNotificationService(
+                {
+                    recipient: acceptedMatch.sender,
+                    type: NOTIFICATION_TYPES.MATCH_REQUEST_ACCEPTED,
+                    message: `${receiver.username} accepted your Match request`
+                },
+                session
+            )
         })
     } finally {
         await session.endSession()
@@ -217,36 +273,74 @@ const acceptMatchService = async (loggedInUser, matchId) => {
 
 const rejectMatchService = async (loggedInUser, matchId) => {
 
-    const rejectedMatch = await Match.findOneAndDelete({
-        _id: matchId,
-        receiver: loggedInUser,
-        status: MATCH_STATUSES.PENDING
-    })
+    const session = await mongoose.startSession()
 
-    if(!rejectedMatch){
-        const existingMatch = await Match.findById(matchId)
+    let rejectedMatch
 
-        if(!existingMatch){
-            throw new ApiError(
-                404,
-                "Match not found",
-                ERROR_CODES.RESOURCE_NOT_FOUND
+    try {
+        await session.withTransaction(async () => {
+
+            rejectedMatch = await Match.findOneAndDelete(
+                {
+                    _id: matchId,
+                    receiver: loggedInUser,
+                    status: MATCH_STATUSES.PENDING
+                },
+                {
+                    session
+                }
             )
-        }
 
-        if(!existingMatch.receiver.equals(loggedInUser)){
-            throw new ApiError(
-                403,
-                "Only the Match receiver can reject this request",
-                ERROR_CODES.FORBIDDEN
+            if(!rejectedMatch){
+                const existingMatch = await Match.findById(matchId)
+                .session(session)
+
+                if(!existingMatch){
+                    throw new ApiError(
+                        404,
+                        "Match not found",
+                        ERROR_CODES.RESOURCE_NOT_FOUND
+                    )
+                }
+
+                if(!existingMatch.receiver.equals(loggedInUser)){
+                    throw new ApiError(
+                        403,
+                        "Only the Match receiver can reject this request",
+                        ERROR_CODES.FORBIDDEN
+                    )
+                }
+
+                throw new ApiError(
+                    409,
+                    "Match request is no longer pending",
+                    ERROR_CODES.INVALID_REQUEST
+                )
+            }
+
+            const receiver = await User.findById(loggedInUser)
+            .select("username")
+            .session(session)
+
+            if(!receiver){
+                throw new ApiError(
+                    404,
+                    "Match receiver not found",
+                    ERROR_CODES.USER_NOT_FOUND
+                )
+            }
+
+            await createNotificationService(
+                {
+                    recipient: rejectedMatch.sender,
+                    type: NOTIFICATION_TYPES.MATCH_REQUEST_REJECTED,
+                    message: `${receiver.username} rejected your Match request`
+                },
+                session
             )
-        }
-
-        throw new ApiError(
-            409,
-            "Match request is no longer pending",
-            ERROR_CODES.INVALID_REQUEST
-        )
+        })
+    } finally {
+        await session.endSession()
     }
 
     return {match: rejectedMatch}
@@ -396,6 +490,25 @@ const removeMatchService = async (loggedInUser, matchId) => {
                     ERROR_CODES.INVALID_REQUEST
                 )
             }
+
+            const removingUser = await User.findById(loggedInUser)
+            .select("username")
+            .session(session)
+
+            const notificationRecipient = removedMatch.sender.equals(
+                loggedInUser
+            )
+                ? removedMatch.receiver
+                : removedMatch.sender
+
+            await createNotificationService(
+                {
+                    recipient: notificationRecipient,
+                    type: NOTIFICATION_TYPES.MATCH_REMOVED,
+                    message: `${removingUser.username} removed your Match`
+                },
+                session
+            )
         })
     } finally {
         await session.endSession()

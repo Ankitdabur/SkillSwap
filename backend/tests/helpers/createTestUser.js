@@ -3,13 +3,16 @@ import User from "../../src/models/user.model.js"
 import Skill from "../../src/models/skill.model.js"
 import SkillRequest from "../../src/models/skillRequest.model.js"
 import Match from "../../src/models/match.model.js"
+import Notification from "../../src/models/notification.model.js"
+import Message from "../../src/models/message.model.js"
 import {
     ACCOUNT_TYPES,
     TEACHING_STYLES,
     LANGUAGES,
     SKILL_CATEGORIES,
     SKILL_REQUEST_STATUSES,
-    MATCH_STATUSES
+    MATCH_STATUSES,
+    NOTIFICATION_TYPES
 } from "../../src/constants/enums.js"
 
 const createTestLearner = async () => {
@@ -141,11 +144,47 @@ const createTestMatch = async (
     return match
 }
 
+const createTestNotification = async (
+    recipient,
+    type = NOTIFICATION_TYPES.MATCH_REQUEST_RECEIVED,
+    message = "Notification created for integration testing",
+    isRead = false
+) => {
+    const notification = await Notification.create({
+        recipient,
+        type,
+        message,
+        isRead
+    })
+
+    return notification
+}
+
+const createTestMessage = async (
+    senderId,
+    receiverId,
+    content = "Message created for integration testing",
+    isRead = false,
+    isDeleted = false
+) => {
+    const message = await Message.create({
+        sender: senderId,
+        receiver: receiverId,
+        content,
+        isRead,
+        isDeleted
+    })
+
+    return message
+}
+
 export {
     createTestLearner,
     createTestTeacher,
     createTestTeacherLearner,
     createTestSkill,
     createTestSkillRequest,
-    createTestMatch
+    createTestMatch,
+    createTestNotification,
+    createTestMessage
 }

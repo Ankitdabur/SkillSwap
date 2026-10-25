@@ -3,8 +3,12 @@ import mongoose from "mongoose"
 import app from "../../../src/app.js"
 import { dbconnect } from "../../../src/db/index.js"
 import Availability from "../../../src/models/availability.model.js"
+import Notification from "../../../src/models/notification.model.js"
 import { generateAccessToken } from "../../../src/utils/token.js"
-import { DAYS_OF_WEEK } from "../../../src/constants/enums.js"
+import {
+    DAYS_OF_WEEK,
+    NOTIFICATION_TYPES
+} from "../../../src/constants/enums.js"
 import {
     createTestLearner,
     createTestTeacher
@@ -12,6 +16,7 @@ import {
 import { authHeader } from "../../helpers/authHeader.js"
 import {
     cleanupTestAvailability,
+    cleanupTestNotifications,
     cleanupTestUsers
 } from "../../helpers/cleanupTestData.js"
 
@@ -45,12 +50,14 @@ beforeAll(async () => {
 
 afterEach(async () => {
     await cleanupTestAvailability()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
 })
 
 
 afterAll(async () => {
     await cleanupTestAvailability()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
     await new Promise((resolve) => server.close(resolve))
     await mongoose.disconnect()
@@ -132,6 +139,17 @@ describe("Update Availability", () => {
             )
             expect(slot.userId.equals(user._id)).toBe(true)
         })
+
+        const notifications = await Notification.find({
+            recipient: user._id,
+            type: NOTIFICATION_TYPES.AVAILABILITY_UPDATED
+        })
+
+        expect(notifications).toHaveLength(1)
+        expect(notifications[0].message).toBe(
+            "Your availability was updated successfully"
+        )
+        expect(notifications[0].isRead).toBe(false)
     })
 
 

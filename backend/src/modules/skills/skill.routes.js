@@ -18,10 +18,15 @@ import {
 
 const router = Router()
 
+// Get all predefined Skills
 router.get("/" , getAllSkills)
+// Get the predefined Skill categories
 router.get("/categories" , getSkillCategories)
+// Get one Skill by its ID
 router.get("/:skillId" , validateSkillId , getSkillById)
+// Create a new predefined Skill
 router.post("/" , verifyJWT , adminRoleMiddleware , validateCreateSkill , createSkill)
+// Replace an existing Skill's details
 router.put("/:skillId" , verifyJWT , adminRoleMiddleware , validateSkillId , validateCreateSkill , updateSkill)
 
 export default router

@@ -15,17 +15,17 @@ import {
 
 const router = Router()
 
-//return logged in user
+// Get the currently logged-in user
 router.get("/me" , verifyJWT , getCurrentUser);
-//update only fullname , avatar , languages
+// Update the current user's basic profile
 router.patch("/me/update" , verifyJWT , upload.single("avatar") , validateUpdateProfile , updateProfile)
-//upgrate teacher and learner accounts only
+// Upgrade the current user's account type
 router.patch("/me/account-upgrade", verifyJWT , validateAccountUpgrade , upgradeAccount,);
-//update the teaching fields only
+// Update the current user's teaching profile
 router.patch("/me/update/teaching-profile", verifyJWT, validateUpdateTeachingProfile , updateTeachingProfile);
-//get info of any user 
+// Get another user's public profile
 router.get("/:userId", verifyJWT ,validateUserIdParam ,getUserProfile);
-//change current password
+// Change the current user's password
 router.patch("/change-password" , verifyJWT , validateChangePassword , changePassword )
 
 

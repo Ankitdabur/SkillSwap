@@ -3,10 +3,12 @@ import mongoose from "mongoose"
 import app from "../../../src/app.js"
 import { dbconnect } from "../../../src/db/index.js"
 import SkillRequest from "../../../src/models/skillRequest.model.js"
+import Notification from "../../../src/models/notification.model.js"
 import { generateAccessToken } from "../../../src/utils/token.js"
 import {
     USER_ROLES,
-    SKILL_REQUEST_STATUSES
+    SKILL_REQUEST_STATUSES,
+    NOTIFICATION_TYPES
 } from "../../../src/constants/enums.js"
 import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
 import {
@@ -17,6 +19,7 @@ import {
 import { authHeader } from "../../helpers/authHeader.js"
 import {
     cleanupTestSkillRequests,
+    cleanupTestNotifications,
     cleanupTestUsers
 } from "../../helpers/cleanupTestData.js"
 
@@ -69,12 +72,14 @@ beforeAll(async () => {
 
 afterEach(async () => {
     await cleanupTestSkillRequests()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
 })
 
 
 afterAll(async () => {
     await cleanupTestSkillRequests()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
     await new Promise((resolve) => server.close(resolve))
     await mongoose.disconnect()
@@ -121,6 +126,17 @@ describe("Reject Skill Request", () => {
         expect(savedSkillRequest.adminResponse).toBe(
             rejectionData.adminResponse
         )
+
+        const notification = await Notification.findOne({
+            recipient: user._id,
+            type: NOTIFICATION_TYPES.SKILL_REQUEST_REJECTED
+        })
+
+        expect(notification).not.toBeNull()
+        expect(notification.message).toBe(
+            "Admin rejected your Skill request for test-requested-skill"
+        )
+        expect(notification.isRead).toBe(false)
     })
 
 

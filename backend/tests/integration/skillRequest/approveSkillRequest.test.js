@@ -4,11 +4,13 @@ import app from "../../../src/app.js"
 import { dbconnect } from "../../../src/db/index.js"
 import Skill from "../../../src/models/skill.model.js"
 import SkillRequest from "../../../src/models/skillRequest.model.js"
+import Notification from "../../../src/models/notification.model.js"
 import { generateAccessToken } from "../../../src/utils/token.js"
 import {
     USER_ROLES,
     SKILL_CATEGORIES,
-    SKILL_REQUEST_STATUSES
+    SKILL_REQUEST_STATUSES,
+    NOTIFICATION_TYPES
 } from "../../../src/constants/enums.js"
 import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
 import {
@@ -21,6 +23,7 @@ import { authHeader } from "../../helpers/authHeader.js"
 import {
     cleanupTestSkillRequests,
     cleanupTestSkills,
+    cleanupTestNotifications,
     cleanupTestUsers
 } from "../../helpers/cleanupTestData.js"
 
@@ -78,6 +81,7 @@ beforeAll(async () => {
 afterEach(async () => {
     await cleanupTestSkillRequests()
     await cleanupTestSkills()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
 })
 
@@ -85,6 +89,7 @@ afterEach(async () => {
 afterAll(async () => {
     await cleanupTestSkillRequests()
     await cleanupTestSkills()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
     await new Promise((resolve) => server.close(resolve))
     await mongoose.disconnect()
@@ -136,6 +141,17 @@ describe("Approve Skill Request", () => {
         expect(savedSkillRequest.status).toBe(
             SKILL_REQUEST_STATUSES.APPROVED
         )
+
+        const notification = await Notification.findOne({
+            recipient: user._id,
+            type: NOTIFICATION_TYPES.SKILL_REQUEST_APPROVED
+        })
+
+        expect(notification).not.toBeNull()
+        expect(notification.message).toBe(
+            "Admin approved your Skill request for test-requested-skill"
+        )
+        expect(notification.isRead).toBe(false)
     })
 
 

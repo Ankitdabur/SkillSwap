@@ -4,7 +4,11 @@ import SkillRequest from "../../models/skillRequest.model.js"
 import Skill from "../../models/skill.model.js"
 import ApiError from "../../utils/ApiError.js"
 import { ERROR_CODES } from "../../constants/errorCodes.js"
-import { SKILL_REQUEST_STATUSES } from "../../constants/enums.js"
+import {
+    SKILL_REQUEST_STATUSES,
+    NOTIFICATION_TYPES
+} from "../../constants/enums.js"
+import { createNotificationService } from "../notifications/notification.service.js"
 
 
 const createSkillRequestService = async (requestedBy,skillRequestData) => {
@@ -109,7 +113,10 @@ const getSkillRequestsByStatusService = async (status, page, limit) => {
 }
 
 
-const approveSkillRequestService = async (skillRequestId,skillData) => {
+const approveSkillRequestService = async (
+    skillRequestId,
+    skillData
+) => {
 
     const {
         name,
@@ -175,6 +182,15 @@ const approveSkillRequestService = async (skillRequestId,skillData) => {
             skillRequest.adminResponse = adminResponse ?? null
 
             approvedSkillRequest = await skillRequest.save({session})
+
+            await createNotificationService(
+                {
+                    recipient: skillRequest.requestedBy,
+                    type: NOTIFICATION_TYPES.SKILL_REQUEST_APPROVED,
+                    message: `Admin approved your Skill request for ${skillRequest.name}`
+                },
+                session
+            )
         })
     } catch (error) {
         throw error
@@ -189,39 +205,65 @@ const approveSkillRequestService = async (skillRequestId,skillData) => {
 }
 
 
-const rejectSkillRequestService = async (skillRequestId,adminResponse) => {
+const rejectSkillRequestService = async (
+    skillRequestId,
+    adminResponse
+) => {
 
-    const rejectedSkillRequest = await SkillRequest.findOneAndUpdate(
-        {
-            _id: skillRequestId,
-            status: SKILL_REQUEST_STATUSES.PENDING
-        },
-        {
-            status: SKILL_REQUEST_STATUSES.REJECTED,
-            adminResponse
-        },
-        {
-            new : true,
-            runValidators: true
-        }
-    )
+    const session = await mongoose.startSession()
 
-    if(!rejectedSkillRequest){
-        const existingSkillRequest = await SkillRequest.findById(skillRequestId)
+    let rejectedSkillRequest
 
-        if(!existingSkillRequest){
-            throw new ApiError(
-                404,
-                "Skill request not found",
-                ERROR_CODES.RESOURCE_NOT_FOUND
+    try {
+        await session.withTransaction(async () => {
+
+            rejectedSkillRequest = await SkillRequest.findOneAndUpdate(
+                {
+                    _id: skillRequestId,
+                    status: SKILL_REQUEST_STATUSES.PENDING
+                },
+                {
+                    status: SKILL_REQUEST_STATUSES.REJECTED,
+                    adminResponse
+                },
+                {
+                    new : true,
+                    runValidators: true,
+                    session
+                }
             )
-        }
 
-        throw new ApiError(
-            409,
-            "Skill request has already been reviewed",
-            ERROR_CODES.INVALID_REQUEST
-        )
+            if(!rejectedSkillRequest){
+                const existingSkillRequest = await SkillRequest.findById(
+                    skillRequestId
+                ).session(session)
+
+                if(!existingSkillRequest){
+                    throw new ApiError(
+                        404,
+                        "Skill request not found",
+                        ERROR_CODES.RESOURCE_NOT_FOUND
+                    )
+                }
+
+                throw new ApiError(
+                    409,
+                    "Skill request has already been reviewed",
+                    ERROR_CODES.INVALID_REQUEST
+                )
+            }
+
+            await createNotificationService(
+                {
+                    recipient: rejectedSkillRequest.requestedBy,
+                    type: NOTIFICATION_TYPES.SKILL_REQUEST_REJECTED,
+                    message: `Admin rejected your Skill request for ${rejectedSkillRequest.name}`
+                },
+                session
+            )
+        })
+    } finally {
+        await session.endSession()
     }
 
     return {skillRequest: rejectedSkillRequest}

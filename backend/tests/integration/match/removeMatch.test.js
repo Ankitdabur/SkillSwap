@@ -4,8 +4,12 @@ import app from "../../../src/app.js"
 import { dbconnect } from "../../../src/db/index.js"
 import Match from "../../../src/models/match.model.js"
 import User from "../../../src/models/user.model.js"
+import Notification from "../../../src/models/notification.model.js"
 import { generateAccessToken } from "../../../src/utils/token.js"
-import { MATCH_STATUSES } from "../../../src/constants/enums.js"
+import {
+    MATCH_STATUSES,
+    NOTIFICATION_TYPES
+} from "../../../src/constants/enums.js"
 import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
 import {
     createTestLearner,
@@ -16,6 +20,7 @@ import {
 import { authHeader } from "../../helpers/authHeader.js"
 import {
     cleanupTestMatches,
+    cleanupTestNotifications,
     cleanupTestUsers
 } from "../../helpers/cleanupTestData.js"
 
@@ -48,12 +53,14 @@ beforeAll(async () => {
 
 afterEach(async () => {
     await cleanupTestMatches()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
 })
 
 
 afterAll(async () => {
     await cleanupTestMatches()
+    await cleanupTestNotifications()
     await cleanupTestUsers()
     await new Promise((resolve) => server.close(resolve))
     await mongoose.disconnect()
@@ -89,6 +96,17 @@ describe("Remove Match", () => {
 
         expect(savedSender.connections).toBe(0)
         expect(savedReceiver.connections).toBe(0)
+
+        const notification = await Notification.findOne({
+            recipient: receiver._id,
+            type: NOTIFICATION_TYPES.MATCH_REMOVED
+        })
+
+        expect(notification).not.toBeNull()
+        expect(notification.message).toBe(
+            `${sender.username} removed your Match`
+        )
+        expect(notification.isRead).toBe(false)
     })
 
 
@@ -110,6 +128,16 @@ describe("Remove Match", () => {
 
         expect(response.status).toBe(200)
         expect(await Match.findById(match._id)).toBeNull()
+
+        const notification = await Notification.findOne({
+            recipient: sender._id,
+            type: NOTIFICATION_TYPES.MATCH_REMOVED
+        })
+
+        expect(notification).not.toBeNull()
+        expect(notification.message).toBe(
+            `${receiver.username} removed your Match`
+        )
     })
 
 
