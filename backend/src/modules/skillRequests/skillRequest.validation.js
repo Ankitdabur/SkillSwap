@@ -13,7 +13,7 @@ const ALLOWED_CREATE_SKILL_REQUEST_FIELDS = [
 ]
 
 const ALLOWED_GET_SKILL_REQUEST_QUERY_FIELDS = [
-    "page",
+    "cursor",
     "limit"
 ]
 
@@ -184,22 +184,25 @@ const validateGetSkillRequests = (req, _res, next) => {
     })
 
     const {
-        page = "1",
+        cursor,
         limit = "10"
     } = query
 
-    const positiveIntegerPattern = /^[1-9]\d*$/
-
     if(
-        typeof page !== "string" ||
-        !positiveIntegerPattern.test(page)
+        cursor !== undefined &&
+        (
+            typeof cursor !== "string" ||
+            !OBJECT_ID_REGEX.test(cursor)
+        )
     ){
         addError(
-            "page",
-            "Page must be a positive integer",
+            "cursor",
+            "Cursor must be a valid skill request ID",
             ERROR_CODES.INVALID_FIELD_VALUE
         )
     }
+
+    const positiveIntegerPattern = /^[1-9]\d*$/
 
     if(
         typeof limit !== "string" ||
@@ -223,7 +226,7 @@ const validateGetSkillRequests = (req, _res, next) => {
     }
 
     req.pagination = {
-        page: Number(page),
+        cursor: cursor || null,
         limit: Number(limit)
     }
 

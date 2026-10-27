@@ -12,7 +12,7 @@ The safest implementation sequence is:
 4. add connections and REST messaging;
 5. implement booking and session state transitions;
 6. implement credit reservation, completion, and admin resolution;
-7. add reviews, reports, recurring sessions, and real-time delivery;
+7. add reviews, reports, recurring sessions, and real-time chat delivery;
 8. add AI features only after the underlying services are stable;
 9. harden, observe, and deploy the complete system.
 
@@ -34,12 +34,13 @@ The system is a peer-to-peer learning platform. Teaching earns credits and learn
 - Authentication: JWT-based authentication.
 - Uploads: Multer and Cloudinary where uploads are required.
 - Initial communication: REST APIs.
-- Later real-time communication: Socket.IO for chat and notifications.
+- Delivery strategy: use Socket.IO only for chat, use periodic REST polling for Notifications, and do not use Socket.IO, polling, server-sent events, or another background update mechanism for other modules. Remote changes to Matches, Sessions, Skills, reports, profiles, availability, credits, and other non-chat/non-Notification data appear when the user refreshes or explicitly refetches the relevant page; the user's own successful action may update its UI from the REST response.
 - Scheduling: node-cron with a custom, database-backed scheduling service.
 - Database authority: MongoDB is the source of truth.
 - Product timezone: Asia/Kolkata.
 - AI: an external AI service may support teacher discovery, learning guidance, and chat summaries.
 - Not included initially: Redis, BullMQ, automatic meeting creation, built-in video calls, and email notifications.
+- Future scope: use the Google Calendar API to automatically create and provide a meeting link 24 hours before every Session; until then, Session meeting links remain manually supplied.
 - Current frontend status: backend-only development with API testing in Postman; frontend framework and build-tool selection are deferred until frontend development starts and do not block Phase 1.
 - Environment/configuration: use `.env`, load it with `dotenv`, and access values directly through `process.env`; no centralized config-wrapper abstraction is required, and the database name may remain separately defined through the project's constants approach.
 - Development and testing use the same database for now; do not introduce separate `.env.test` or test-database architecture at this stage.
@@ -49,7 +50,7 @@ The system is a peer-to-peer learning platform. Teaching earns credits and learn
 ```mermaid
 flowchart LR
     UI[Web frontend] -->|HTTPS REST| API[Express API]
-    UI <-->|Socket.IO after REST is stable| RT[Realtime gateway]
+    UI <-->|Socket.IO for chat after REST is stable| RT[Chat realtime gateway]
     API --> APP[Application services]
     RT --> APP
     JOBS[node-cron scheduler] --> APP
@@ -198,7 +199,7 @@ Within a backend module, use a consistent direction such as route -> controller 
 ```
 
 - Do not expose stack traces, password hashes, refresh tokens, provider secrets, or private AI prompts in API responses.
-- Use `page` + `limit` for normal lists and search results, and cursor-based pagination for stream-like data such as chat messages. Exact response structures and endpoint-specific details are deferred until Phase 2 or the relevant later module; do not force every endpoint to use one method.
+- Use `page` + `limit` for teacher Discovery results. Use cursor-based pagination with stable creation-time and `_id` ordering for chat messages, Notification lists, and admin SkillRequest lists. Exact response structures for later modules are finalized in their relevant phase rather than forcing every endpoint to use one method.
 - Paginate every potentially unbounded list, including teachers, messages, notifications, reports, transactions, sessions, and AI messages.
 
 ## Confirmed Database Architecture
@@ -393,6 +394,7 @@ Only real user actions set `teacherConfirmedAt` or `learnerConfirmedAt`. Automat
 - Only an explicit share action creates a Message with `messageType = AI_SUMMARY`.
 - Shared summaries must be visibly labeled in the UI.
 - Socket.IO is a later delivery layer; MongoDB remains the message source of truth.
+- Notifications use periodic REST polling rather than Socket.IO. Every other non-chat module uses explicit page refresh/refetch for remote changes and has no background polling or real-time delivery layer.
 
 ### AI assistant conversations
 
@@ -536,6 +538,8 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 ### Phase 3 Matches notifications and REST chat
 
+**Status:** backend scope completed on 26 October 2026. Match lifecycle and blocking rules, transactional connection-count updates, Notification behavior, REST Message history with bidirectional cursor pagination, chat-history users, read state, soft deletion, and their unit/integration tests are implemented. Frontend work remains deliberately deferred and does not block this backend completion status.
+
 **Goal:** establish user connections and durable communication before real-time features.
 
 **Backend work**
@@ -669,21 +673,23 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 - One insufficient occurrence does not silently create an unfunded accepted Session.
 - Manual sessions have no recurringSchedule reference.
 
-### Phase 8 Socket.IO real-time delivery
+### Phase 8 Socket.IO real-time chat delivery
 
-**Goal:** improve responsiveness without changing business authority.
+**Goal:** improve chat responsiveness without changing business authority.
 
 **Backend work**
 
 - Authenticate the Socket.IO handshake.
 - Authorize rooms using the same Match/user rules as REST.
-- Emit message and notification events only after database writes succeed.
+- Emit chat-message and read-state events only after database writes succeed.
 - Add reconnect and missed-event recovery through REST queries.
 - Before implementing Socket.IO delivery or introducing Redis caching, finalize and implement stable pagination snapshots for real-time lists. Use an approved cursor and snapshot boundary/watermark so newly inserted records do not shift already loaded pages or cause skipped or duplicate records; any Redis cache must preserve the same pagination contract.
 
 **Frontend work**
 
-- Add live messages, read indicators, and notifications.
+- Add live chat messages and read indicators.
+- Fetch Notifications through periodic REST polling; do not subscribe to Notification socket events.
+- Do not add Socket.IO, polling, server-sent events, or another background update mechanism to Matches, Sessions, Skills, reports, profiles, availability, credits, or other non-chat/non-Notification modules. Users see remote changes after refreshing or explicitly refetching the relevant page.
 - Reconcile socket events with cached REST data without duplicates.
 - Fall back to REST when the socket is unavailable.
 
@@ -765,11 +771,12 @@ Resolve these explicitly; do not hide them in implementation details.
 
 ## Immediate Next Steps
 
-Phase 1 and Phase 2 backend work are complete. Graceful shutdown remains a deliberate Phase 10 hardening task. Discovery tests and its completed-Session scoring integration remain deliberate follow-ups for when the Session model is implemented. The next concrete work items are the Phase 3 backend capabilities:
+Phase 1, Phase 2, and Phase 3 backend work are complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 4 Session-booking capabilities:
 
-1. Implement the finalized Match model with `pairKey`, the three Match statuses, and the approved indexes.
-2. Implement Match request, acceptance, rejection, cancellation, removal, block, and unblock workflows with the finalized deletion semantics.
-3. Implement Match notifications and safe connection-count updates.
-4. Implement paginated REST chat messages, read status, and soft deletion.
+1. Finalize the Session fields, statuses, scheduling representation, agreed-price rules, cancellation metadata, and manually supplied meeting-link rules.
+2. Implement the Session model, finalized indexes, and model tests for both `REGULAR` and `DEMO` Sessions.
+3. Implement Session request, list, detail, accept, reject, and pre-start cancellation workflows with participant, account-type, Skill, availability, and accepted-Match validation.
+4. Allow overlapping pending requests, but detect both participants' conflicts during acceptance and reject conflicting pending requests safely.
+5. After the Session model exists, integrate completed `REGULAR` Session counts into Discovery compatibility scoring and add the deliberately deferred Discovery unit and integration tests.
 
-Do not begin booking, credits, cron jobs, Socket.IO, or AI until their prerequisite phases and exit criteria are complete.
+Do not begin credits, completion automation, cron jobs, Socket.IO, or AI until their prerequisite phases and exit criteria are complete.

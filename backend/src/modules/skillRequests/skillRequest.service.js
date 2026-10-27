@@ -74,40 +74,83 @@ const getMySkillRequestsByStatusService = async ( requestedBy , status ) => {
 }
 
 
-const getSkillRequestsByStatusService = async (status, page, limit) => {
+const getSkillRequestsByStatusService = async (
+    status,
+    cursor,
+    limit
+) => {
 
-    const skip = (page - 1) * limit
+    let cursorSkillRequest = null
 
-    const skillRequests = await SkillRequest.aggregate([
+    if(cursor){
+        cursorSkillRequest = await SkillRequest.findOne({
+            _id: cursor,
+            status
+        }).select("createdAt")
+
+        if(!cursorSkillRequest){
+            throw new ApiError(
+                400,
+                "Invalid skill request cursor",
+                ERROR_CODES.INVALID_FIELD_VALUE
+            )
+        }
+    }
+
+    const skillRequestResults = await SkillRequest.aggregate([
         {
             $match : {
                 status
             }
         },
+        ...(cursorSkillRequest
+            ? [
+                {
+                    $match: {
+                        $or: [
+                            {
+                                createdAt: {
+                                    $lt: cursorSkillRequest.createdAt
+                                }
+                            },
+                            {
+                                createdAt: cursorSkillRequest.createdAt,
+                                _id: {
+                                    $lt: cursorSkillRequest._id
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+            : []),
         {
             $sort : {
-                createdAt : -1
+                createdAt : -1,
+                _id: -1
             }
         },
         {
-            $skip : skip
-        },
-        {
-            $limit : limit
+            $limit : limit + 1
         }
     ])
 
-    const totalRequests = await SkillRequest.countDocuments({status})
+    const hasMore = skillRequestResults.length > limit
 
-    const totalPages = Math.ceil(totalRequests / limit)
+    const skillRequests = hasMore
+        ? skillRequestResults.slice(0, limit)
+        : skillRequestResults
+
+    const nextCursor = hasMore
+        ? skillRequests[skillRequests.length - 1]._id.toString()
+        : null
 
     return {
         skillRequests,
         pagination: {
-            page,
             limit,
-            totalRequests,
-            totalPages
+            nextCursor,
+            hasMore
         }
     }
 }

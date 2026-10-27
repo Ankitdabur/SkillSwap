@@ -288,7 +288,8 @@ describe("Notification Model", () => {
             ([fields]) =>
                 fields.recipient === 1 &&
                 fields.isRead === 1 &&
-                fields.createdAt === -1
+                fields.createdAt === -1 &&
+                fields._id === -1
         )
 
         expect(readStateIndex).toBeDefined()
@@ -304,6 +305,7 @@ describe("Notification Model", () => {
             ([fields]) =>
                 fields.recipient === 1 &&
                 fields.createdAt === -1 &&
+                fields._id === -1 &&
                 fields.isRead === undefined
         )
 

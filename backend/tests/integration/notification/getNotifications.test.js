@@ -63,24 +63,24 @@ afterAll(async () => {
 
 describe("Get Notifications", () => {
 
-    test("User can get their notifications with pagination", async () => {
+    test("User can get their notifications with cursor pagination", async () => {
         const {user} = await createTestLearner()
         const {user: otherUser} = await createTestTeacher()
         const accessToken = generateAccessToken(user._id)
 
-        await createTestNotification(
+        const firstNotification = await createTestNotification(
             user._id,
             NOTIFICATION_TYPES.MATCH_REQUEST_RECEIVED,
             "First notification"
         )
 
-        await createTestNotification(
+        const secondNotification = await createTestNotification(
             user._id,
             NOTIFICATION_TYPES.MATCH_REQUEST_ACCEPTED,
             "Second notification"
         )
 
-        await createTestNotification(
+        const thirdNotification = await createTestNotification(
             user._id,
             NOTIFICATION_TYPES.MATCH_REQUEST_REJECTED,
             "Third notification"
@@ -92,26 +92,57 @@ describe("Get Notifications", () => {
             "Other user notification"
         )
 
-        const response = await getNotifications(
+        const firstResponse = await getNotifications(
             "",
             accessToken,
-            "?page=2&limit=1"
+            "?limit=1"
         )
 
-        expect(response.status).toBe(200)
-        expect(response.data.success).toBe(true)
-        expect(response.data.message).toBe(
+        expect(firstResponse.status).toBe(200)
+        expect(firstResponse.data.success).toBe(true)
+        expect(firstResponse.data.message).toBe(
             "Notifications fetched successfully"
         )
-        expect(response.data.data.notifications).toHaveLength(1)
-        expect(
-            response.data.data.notifications[0].recipient
-        ).toBe(user._id.toString())
-        expect(response.data.data.pagination).toEqual({
-            page: 2,
+        expect(firstResponse.data.data.notifications).toHaveLength(1)
+        expect(firstResponse.data.data.notifications[0]._id).toBe(
+            thirdNotification._id.toString()
+        )
+        expect(firstResponse.data.data.pagination).toEqual({
             limit: 1,
-            totalNotifications: 3,
-            totalPages: 3
+            nextCursor: thirdNotification._id.toString(),
+            hasMore: true
+        })
+
+        const secondResponse = await getNotifications(
+            "",
+            accessToken,
+            `?cursor=${thirdNotification._id}&limit=1`
+        )
+
+        expect(secondResponse.status).toBe(200)
+        expect(secondResponse.data.data.notifications[0]._id).toBe(
+            secondNotification._id.toString()
+        )
+        expect(secondResponse.data.data.pagination).toEqual({
+            limit: 1,
+            nextCursor: secondNotification._id.toString(),
+            hasMore: true
+        })
+
+        const thirdResponse = await getNotifications(
+            "",
+            accessToken,
+            `?cursor=${secondNotification._id}&limit=1`
+        )
+
+        expect(thirdResponse.status).toBe(200)
+        expect(thirdResponse.data.data.notifications[0]._id).toBe(
+            firstNotification._id.toString()
+        )
+        expect(thirdResponse.data.data.pagination).toEqual({
+            limit: 1,
+            nextCursor: null,
+            hasMore: false
         })
     })
 
@@ -144,8 +175,11 @@ describe("Get Notifications", () => {
             readNotification._id.toString()
         )
         expect(response.data.data.notifications[0].isRead).toBe(true)
-        expect(response.data.data.pagination.totalNotifications).toBe(1)
-        expect(response.data.data.pagination.limit).toBe(20)
+        expect(response.data.data.pagination).toEqual({
+            limit: 20,
+            nextCursor: null,
+            hasMore: false
+        })
     })
 
 
@@ -177,7 +211,33 @@ describe("Get Notifications", () => {
             unreadNotification._id.toString()
         )
         expect(response.data.data.notifications[0].isRead).toBe(false)
-        expect(response.data.data.pagination.totalNotifications).toBe(1)
+        expect(response.data.data.pagination).toEqual({
+            limit: 20,
+            nextCursor: null,
+            hasMore: false
+        })
+    })
+
+
+    test("User cannot use another user's Notification as cursor", async () => {
+        const {user} = await createTestLearner()
+        const {user: otherUser} = await createTestTeacher()
+        const accessToken = generateAccessToken(user._id)
+
+        const otherNotification = await createTestNotification(
+            otherUser._id
+        )
+
+        const response = await getNotifications(
+            "",
+            accessToken,
+            `?cursor=${otherNotification._id}`
+        )
+
+        expect(response.status).toBe(400)
+        expect(response.data.code).toBe(
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
     })
 
 

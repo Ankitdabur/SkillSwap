@@ -98,9 +98,27 @@ const cleanupTestSkillRequests = async () => {
     }).select("_id")
 
     await SkillRequest.deleteMany({
-        requestedBy: {
-            $in: testUsers.map((user) => user._id)
-        }
+        $or: [
+            {
+                requestedBy: {
+                    $in: testUsers.map((user) => user._id)
+                }
+            },
+            {
+                name: {
+                    $in: [
+                        "test-requested-skill",
+                        "test-approved-skill-request",
+                        "test-pending-skill-request",
+                        "test-pending-skill-request-one",
+                        "test-pending-skill-request-two",
+                        "test-rejected-skill-request",
+                        "test-learner-skill-request",
+                        "test-teacher-skill-request"
+                    ]
+                }
+            }
+        ]
     })
 }
 

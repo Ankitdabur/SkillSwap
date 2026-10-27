@@ -26,11 +26,11 @@ describe("Notification Validation", () => {
     // GET NOTIFICATIONS
 
 
-    test("Get notifications validation accepts correct pagination", () => {
+    test("Get notifications validation accepts cursor pagination", () => {
 
         const req = {
             query: {
-                page: "2",
+                cursor: notificationId,
                 limit: "25"
             }
         }
@@ -40,7 +40,7 @@ describe("Notification Validation", () => {
         validateGetNotifications(req, {}, next)
 
         expect(req.pagination).toEqual({
-            page: 2,
+            cursor: notificationId,
             limit: 25
         })
         expect(next).toHaveBeenCalledTimes(1)
@@ -57,7 +57,7 @@ describe("Notification Validation", () => {
         validateGetNotifications(req, {}, next)
 
         expect(req.pagination).toEqual({
-            page: 1,
+            cursor: null,
             limit: 20
         })
         expect(next).toHaveBeenCalledTimes(1)
@@ -78,7 +78,7 @@ describe("Notification Validation", () => {
         validateGetNotifications(req, {}, next)
 
         expect(req.pagination).toEqual({
-            page: 1,
+            cursor: null,
             limit: 50
         })
         expect(next).toHaveBeenCalledTimes(1)
@@ -116,11 +116,11 @@ describe("Notification Validation", () => {
     })
 
 
-    test("Get notifications validation rejects zero page", () => {
+    test("Get notifications validation rejects invalid cursor", () => {
 
         const req = {
             query: {
-                page: "0"
+                cursor: "invalid-notification-id"
             }
         }
 
@@ -135,7 +135,7 @@ describe("Notification Validation", () => {
         expect(error.errors).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    field: "page",
+                    field: "cursor",
                     code: ERROR_CODES.INVALID_FIELD_VALUE
                 })
             ])
@@ -145,11 +145,11 @@ describe("Notification Validation", () => {
     })
 
 
-    test("Get notifications validation rejects non-string page", () => {
+    test("Get notifications validation rejects non-string cursor", () => {
 
         const req = {
             query: {
-                page: 2
+                cursor: 123
             }
         }
 
@@ -164,7 +164,7 @@ describe("Notification Validation", () => {
         expect(error.errors).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    field: "page",
+                    field: "cursor",
                     code: ERROR_CODES.INVALID_FIELD_VALUE
                 })
             ])
@@ -261,11 +261,11 @@ describe("Notification Validation", () => {
     })
 
 
-    test("Get notifications validation returns page and limit errors together", () => {
+    test("Get notifications validation returns cursor and limit errors together", () => {
 
         const req = {
             query: {
-                page: "invalid",
+                cursor: "invalid",
                 limit: "invalid"
             }
         }
@@ -281,7 +281,7 @@ describe("Notification Validation", () => {
         expect(error.errors).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    field: "page",
+                    field: "cursor",
                     code: ERROR_CODES.INVALID_FIELD_VALUE
                 }),
                 expect.objectContaining({

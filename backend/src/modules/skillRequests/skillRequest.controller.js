@@ -87,13 +87,13 @@ const getMyRejectedSkillRequests = asyncHandler(async (req, res) => {
 const getPendingSkillRequests = asyncHandler(async (req, res) => {
 
     const {
-        page,
+        cursor,
         limit
     } = req.pagination
 
     const skillRequestsData = await getSkillRequestsByStatusService(
         SKILL_REQUEST_STATUSES.PENDING,
-        page,
+        cursor,
         limit
     )
 
@@ -112,13 +112,13 @@ const getPendingSkillRequests = asyncHandler(async (req, res) => {
 const getApprovedSkillRequests = asyncHandler(async (req, res) => {
 
     const {
-        page,
+        cursor,
         limit
     } = req.pagination
 
     const skillRequestsData = await getSkillRequestsByStatusService(
         SKILL_REQUEST_STATUSES.APPROVED,
-        page,
+        cursor,
         limit
     )
 
@@ -137,13 +137,13 @@ const getApprovedSkillRequests = asyncHandler(async (req, res) => {
 const getRejectedSkillRequests = asyncHandler(async (req, res) => {
 
     const {
-        page,
+        cursor,
         limit
     } = req.pagination
 
     const skillRequestsData = await getSkillRequestsByStatusService(
         SKILL_REQUEST_STATUSES.REJECTED,
-        page,
+        cursor,
         limit
     )
 

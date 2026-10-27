@@ -67,13 +67,15 @@ const skillRequestSchema = new mongoose.Schema(
 
 skillRequestSchema.index({
     status: 1,
-    createdAt: -1
+    createdAt: -1,
+    _id: -1
 })
 
 skillRequestSchema.index({
     requestedBy: 1,
     status: 1,
-    createdAt: -1
+    createdAt: -1,
+    _id: -1
 })
 
 

@@ -352,6 +352,7 @@ describe("SkillRequest Model", () => {
             ([fields]) =>
                 fields.status === 1 &&
                 fields.createdAt === -1 &&
+                fields._id === -1 &&
                 fields.requestedBy === undefined
         )
 
@@ -368,7 +369,8 @@ describe("SkillRequest Model", () => {
             ([fields]) =>
                 fields.requestedBy === 1 &&
                 fields.status === 1 &&
-                fields.createdAt === -1
+                fields.createdAt === -1 &&
+                fields._id === -1
         )
 
         expect(userStatusIndex).toBeDefined()

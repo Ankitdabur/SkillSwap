@@ -243,7 +243,7 @@ describe("SkillRequest Validation", () => {
         validateGetSkillRequests(req, {}, next)
 
         expect(req.pagination).toEqual({
-            page: 1,
+            cursor: null,
             limit: 10
         })
         expect(next).toHaveBeenCalledTimes(1)
@@ -251,11 +251,11 @@ describe("SkillRequest Validation", () => {
     })
 
 
-    test("Get skill requests validation accepts and normalizes pagination", () => {
+    test("Get skill requests validation accepts cursor pagination", () => {
 
         const req = {
             query: {
-                page: "2",
+                cursor: "507f1f77bcf86cd799439011",
                 limit: "20"
             }
         }
@@ -265,7 +265,7 @@ describe("SkillRequest Validation", () => {
         validateGetSkillRequests(req, {}, next)
 
         expect(req.pagination).toEqual({
-            page: 2,
+            cursor: "507f1f77bcf86cd799439011",
             limit: 20
         })
         expect(next).toHaveBeenCalledTimes(1)
@@ -277,7 +277,7 @@ describe("SkillRequest Validation", () => {
 
         const req = {
             query: {
-                page: "1",
+                cursor: "507f1f77bcf86cd799439011",
                 limit: "10",
                 status: "PENDING"
             }
@@ -304,11 +304,11 @@ describe("SkillRequest Validation", () => {
     })
 
 
-    test("Get skill requests validation rejects invalid page", () => {
+    test("Get skill requests validation rejects invalid cursor", () => {
 
         const req = {
             query: {
-                page: "0",
+                cursor: "invalid-skill-request-id",
                 limit: "10"
             }
         }
@@ -324,7 +324,7 @@ describe("SkillRequest Validation", () => {
         expect(error.errors).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    field: "page",
+                    field: "cursor",
                     code: ERROR_CODES.INVALID_FIELD_VALUE
                 })
             ])
@@ -338,7 +338,6 @@ describe("SkillRequest Validation", () => {
 
         const req = {
             query: {
-                page: "1",
                 limit: "101"
             }
         }

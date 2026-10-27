@@ -56,6 +56,8 @@ const createTestAdmin = async () => {
 
 beforeAll(async () => {
     await dbconnect()
+    await cleanupTestSkillRequests()
+    await cleanupTestUsers()
     server = app.listen(PORT)
 })
 
@@ -76,17 +78,17 @@ afterAll(async () => {
 
 describe("Get Skill Requests As Admin", () => {
 
-    test("Admin can get pending skill requests with pagination", async () => {
+    test("Admin can get pending skill requests with cursor pagination", async () => {
         const admin = await createTestAdmin()
         const {user} = await createTestTeacher()
         const accessToken = generateAccessToken(admin._id)
 
-        await createTestSkillRequest(
+        const firstPendingSkillRequest = await createTestSkillRequest(
             user._id,
             "test-pending-skill-request-one"
         )
 
-        await createTestSkillRequest(
+        const secondPendingSkillRequest = await createTestSkillRequest(
             user._id,
             "test-pending-skill-request-two"
         )
@@ -97,26 +99,45 @@ describe("Get Skill Requests As Admin", () => {
             SKILL_REQUEST_STATUSES.APPROVED
         )
 
-        const response = await getAdminSkillRequests(
+        const firstResponse = await getAdminSkillRequests(
             "pending",
             accessToken,
-            "?page=2&limit=1"
+            "?limit=1"
         )
 
-        expect(response.status).toBe(200)
-        expect(response.data.success).toBe(true)
-        expect(response.data.message).toBe(
+        expect(firstResponse.status).toBe(200)
+        expect(firstResponse.data.success).toBe(true)
+        expect(firstResponse.data.message).toBe(
             "Pending skill requests fetched successfully"
         )
-        expect(response.data.data.skillRequests).toHaveLength(1)
-        expect(response.data.data.skillRequests[0].status).toBe(
+        expect(firstResponse.data.data.skillRequests).toHaveLength(1)
+        expect(firstResponse.data.data.skillRequests[0]._id).toBe(
+            secondPendingSkillRequest._id.toString()
+        )
+        expect(firstResponse.data.data.skillRequests[0].status).toBe(
             SKILL_REQUEST_STATUSES.PENDING
         )
-        expect(response.data.data.pagination).toEqual({
-            page: 2,
+        expect(firstResponse.data.data.pagination).toEqual({
             limit: 1,
-            totalRequests: 2,
-            totalPages: 2
+            nextCursor: secondPendingSkillRequest._id.toString(),
+            hasMore: true
+        })
+
+        const secondResponse = await getAdminSkillRequests(
+            "pending",
+            accessToken,
+            `?cursor=${secondPendingSkillRequest._id}&limit=1`
+        )
+
+        expect(secondResponse.status).toBe(200)
+        expect(secondResponse.data.data.skillRequests).toHaveLength(1)
+        expect(secondResponse.data.data.skillRequests[0]._id).toBe(
+            firstPendingSkillRequest._id.toString()
+        )
+        expect(secondResponse.data.data.pagination).toEqual({
+            limit: 1,
+            nextCursor: null,
+            hasMore: false
         })
     })
 
@@ -147,8 +168,11 @@ describe("Get Skill Requests As Admin", () => {
         expect(response.data.data.skillRequests[0]._id).toBe(
             approvedSkillRequest._id.toString()
         )
-        expect(response.data.data.pagination.totalRequests).toBe(1)
-        expect(response.data.data.pagination.limit).toBe(10)
+        expect(response.data.data.pagination).toEqual({
+            limit: 10,
+            nextCursor: null,
+            hasMore: false
+        })
     })
 
 
@@ -178,7 +202,35 @@ describe("Get Skill Requests As Admin", () => {
         expect(response.data.data.skillRequests[0]._id).toBe(
             rejectedSkillRequest._id.toString()
         )
-        expect(response.data.data.pagination.totalRequests).toBe(1)
+        expect(response.data.data.pagination).toEqual({
+            limit: 10,
+            nextCursor: null,
+            hasMore: false
+        })
+    })
+
+
+    test("Admin cannot use a SkillRequest from another status as cursor", async () => {
+        const admin = await createTestAdmin()
+        const {user} = await createTestTeacher()
+        const accessToken = generateAccessToken(admin._id)
+
+        const approvedSkillRequest = await createTestSkillRequest(
+            user._id,
+            "test-approved-skill-request",
+            SKILL_REQUEST_STATUSES.APPROVED
+        )
+
+        const response = await getAdminSkillRequests(
+            "pending",
+            accessToken,
+            `?cursor=${approvedSkillRequest._id}`
+        )
+
+        expect(response.status).toBe(400)
+        expect(response.data.code).toBe(
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
     })
 
 

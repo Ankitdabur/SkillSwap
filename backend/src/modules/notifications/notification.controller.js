@@ -13,13 +13,13 @@ import {
 const getNotifications = asyncHandler(async (req, res) => {
 
     const {
-        page,
+        cursor,
         limit
     } = req.pagination
 
     const notificationsData = await getNotificationsService(
         req.user._id,
-        page,
+        cursor,
         limit
     )
 
@@ -95,14 +95,14 @@ const getUnreadNotificationCount = asyncHandler(async (req, res) => {
 const getReadNotifications = asyncHandler(async (req, res) => {
 
     const {
-        page,
+        cursor,
         limit
     } = req.pagination
 
     const notificationsData = await getNotificationsByReadStatusService(
         req.user._id,
         true,
-        page,
+        cursor,
         limit
     )
 
@@ -121,14 +121,14 @@ const getReadNotifications = asyncHandler(async (req, res) => {
 const getUnreadNotifications = asyncHandler(async (req, res) => {
 
     const {
-        page,
+        cursor,
         limit
     } = req.pagination
 
     const notificationsData = await getNotificationsByReadStatusService(
         req.user._id,
         false,
-        page,
+        cursor,
         limit
     )
 

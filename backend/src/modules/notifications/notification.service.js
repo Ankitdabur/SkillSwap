@@ -27,33 +27,93 @@ const createNotificationService = async (
 }
 
 
-const getNotificationsService = async (loggedInUser, page, limit) => {
+const getNotificationsByFilterService = async (
+    notificationFilter,
+    cursor,
+    limit
+) => {
 
-    const skip = (page - 1) * limit
+    let cursorNotification = null
 
-    const notifications = await Notification.find({
-        recipient: loggedInUser
-    }).sort({
-        createdAt: -1
+    if(cursor){
+        cursorNotification = await Notification.findOne({
+            ...notificationFilter,
+            _id: cursor
+        }).select("createdAt")
+
+        if(!cursorNotification){
+            throw new ApiError(
+                400,
+                "Invalid notification cursor",
+                ERROR_CODES.INVALID_FIELD_VALUE
+            )
+        }
+    }
+
+    const paginatedFilter = {
+        ...notificationFilter,
+        ...(cursorNotification
+            ? {
+                $or: [
+                    {
+                        createdAt: {
+                            $lt: cursorNotification.createdAt
+                        }
+                    },
+                    {
+                        createdAt: cursorNotification.createdAt,
+                        _id: {
+                            $lt: cursorNotification._id
+                        }
+                    }
+                ]
+            }
+            : {})
+    }
+
+    const notificationResults = await Notification.find(
+        paginatedFilter
+    )
+    .sort({
+        createdAt: -1,
+        _id: -1
     })
-    .skip(skip)
-    .limit(limit)
+    .limit(limit + 1)
 
-    const totalNotifications = await Notification.countDocuments({
-        recipient: loggedInUser
-    })
+    const hasMore = notificationResults.length > limit
 
-    const totalPages = Math.ceil(totalNotifications / limit)
+    const notifications = hasMore
+        ? notificationResults.slice(0, limit)
+        : notificationResults
+
+    const nextCursor = hasMore
+        ? notifications[notifications.length - 1]._id.toString()
+        : null
 
     return {
         notifications,
         pagination: {
-            page,
             limit,
-            totalNotifications,
-            totalPages
+            nextCursor,
+            hasMore
         }
     }
+}
+
+
+const getNotificationsService = async (
+    loggedInUser,
+    cursor,
+    limit
+) => {
+
+    return getNotificationsByFilterService(
+        {
+            recipient: loggedInUser
+        },
+        cursor,
+        limit
+    )
 }
 
 
@@ -120,39 +180,18 @@ const getUnreadNotificationCountService = async (loggedInUser) => {
 const getNotificationsByReadStatusService = async (
     loggedInUser,
     isRead,
-    page,
+    cursor,
     limit
 ) => {
 
-    const skip = (page - 1) * limit
-
-    const notificationFilter = {
-        recipient: loggedInUser,
-        isRead
-    }
-
-    const notifications = await Notification.find(notificationFilter)
-    .sort({
-        createdAt: -1
-    })
-    .skip(skip)
-    .limit(limit)
-
-    const totalNotifications = await Notification.countDocuments(
-        notificationFilter
+    return getNotificationsByFilterService(
+        {
+            recipient: loggedInUser,
+            isRead
+        },
+        cursor,
+        limit
     )
-
-    const totalPages = Math.ceil(totalNotifications / limit)
-
-    return {
-        notifications,
-        pagination: {
-            page,
-            limit,
-            totalNotifications,
-            totalPages
-        }
-    }
 }
 
 

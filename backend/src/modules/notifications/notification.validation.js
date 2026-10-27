@@ -4,7 +4,7 @@ import { ERROR_CODES } from "../../constants/errorCodes.js"
 
 
 const ALLOWED_GET_NOTIFICATION_QUERY_FIELDS = [
-    "page",
+    "cursor",
     "limit"
 ]
 
@@ -40,22 +40,25 @@ const validateGetNotifications = (req, _res, next) => {
     })
 
     const {
-        page = "1",
+        cursor,
         limit = "20"
     } = query
 
-    const positiveIntegerPattern = /^[1-9]\d*$/
-
     if(
-        typeof page !== "string" ||
-        !positiveIntegerPattern.test(page)
+        cursor !== undefined &&
+        (
+            typeof cursor !== "string" ||
+            !OBJECT_ID_REGEX.test(cursor)
+        )
     ){
         addError(
-            "page",
-            "Page must be a positive integer",
+            "cursor",
+            "Cursor must be a valid notification ID",
             ERROR_CODES.INVALID_FIELD_VALUE
         )
     }
+
+    const positiveIntegerPattern = /^[1-9]\d*$/
 
     if(
         typeof limit !== "string" ||
@@ -79,7 +82,7 @@ const validateGetNotifications = (req, _res, next) => {
     }
 
     req.pagination = {
-        page: Number(page),
+        cursor: cursor || null,
         limit: Number(limit)
     }
 
