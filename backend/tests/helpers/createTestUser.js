@@ -5,14 +5,19 @@ import SkillRequest from "../../src/models/skillRequest.model.js"
 import Match from "../../src/models/match.model.js"
 import Notification from "../../src/models/notification.model.js"
 import Message from "../../src/models/message.model.js"
+import Session from "../../src/models/session.model.js"
 import {
     ACCOUNT_TYPES,
+    COMPLETION_METHODS,
     TEACHING_STYLES,
     LANGUAGES,
     SKILL_CATEGORIES,
     SKILL_REQUEST_STATUSES,
     MATCH_STATUSES,
-    NOTIFICATION_TYPES
+    NOTIFICATION_TYPES,
+    SESSION_DURATIONS,
+    SESSION_STATUSES,
+    SESSION_TYPES
 } from "../../src/constants/enums.js"
 
 const createTestLearner = async () => {
@@ -33,7 +38,9 @@ const createTestLearner = async () => {
     }
 }
 
-const createTestTeacher = async () => {
+const createTestTeacher = async (
+    teachingSkillId = new mongoose.Types.ObjectId()
+) => {
     const password = "Password@123"
 
     const user = await User.create({
@@ -44,7 +51,7 @@ const createTestTeacher = async () => {
         accountType: ACCOUNT_TYPES.TEACHER,
         languages: [LANGUAGES.ENGLISH],
         teachingSkills: [
-            new mongoose.Types.ObjectId()
+            teachingSkillId
         ],
         teachingStyles: [
             TEACHING_STYLES.STEP_BY_STEP
@@ -57,7 +64,9 @@ const createTestTeacher = async () => {
     }
 }
 
-const createTestTeacherLearner = async () => {
+const createTestTeacherLearner = async (
+    teachingSkillId = new mongoose.Types.ObjectId()
+) => {
     const password = "Password@123"
 
     const user = await User.create({
@@ -68,7 +77,7 @@ const createTestTeacherLearner = async () => {
         accountType: ACCOUNT_TYPES.TEACHER_LEARNER,
         languages: [LANGUAGES.ENGLISH],
         teachingSkills: [
-            new mongoose.Types.ObjectId()
+            teachingSkillId
         ],
         teachingStyles: [
             TEACHING_STYLES.STEP_BY_STEP
@@ -178,6 +187,41 @@ const createTestMessage = async (
     return message
 }
 
+const createTestSession = async (
+    teacherId,
+    learnerId,
+    skillId,
+    status = SESSION_STATUSES.PENDING,
+    overrides = {}
+) => {
+    const sessionType = overrides.sessionType || SESSION_TYPES.REGULAR
+
+    const session = await Session.create({
+        teacher: teacherId,
+        learner: learnerId,
+        skill: skillId,
+        scheduledAt: new Date(
+            Date.now() + 24 * 60 * 60 * 1000
+        ),
+        duration: SESSION_DURATIONS.ONE_HOUR,
+        credits: sessionType === SESSION_TYPES.DEMO ? 0 : 10,
+        status,
+        sessionType,
+        meetingLink: [
+            SESSION_STATUSES.PENDING,
+            SESSION_STATUSES.REJECTED
+        ].includes(status)
+            ? null
+            : "https://meet.example.com/test-session",
+        completionMethod: status === SESSION_STATUSES.COMPLETED
+            ? COMPLETION_METHODS.BOTH_CONFIRMED
+            : null,
+        ...overrides
+    })
+
+    return session
+}
+
 export {
     createTestLearner,
     createTestTeacher,
@@ -186,5 +230,6 @@ export {
     createTestSkillRequest,
     createTestMatch,
     createTestNotification,
-    createTestMessage
+    createTestMessage,
+    createTestSession
 }

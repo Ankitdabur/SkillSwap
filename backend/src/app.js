@@ -12,6 +12,7 @@ import discoveryRouter from "./modules/discovery/discovery.routes.js"
 import matchRouter from "./modules/matches/match.routes.js"
 import notificationRouter from "./modules/notifications/notification.routes.js"
 import messageRouter from "./modules/messages/message.routes.js"
+import sessionRouter from "./modules/sessions/session.routes.js"
 const app = express()
 
 app.use(cors(
@@ -33,6 +34,7 @@ app.use("/api/v1/discovery", discoveryRouter)
 app.use("/api/v1/matches" , matchRouter)
 app.use("/api/v1/notifications", notificationRouter)
 app.use("/api/v1/messages", messageRouter)
+app.use("/api/v1/sessions", sessionRouter)
 //not found middleware
 app.use(notFound)
 

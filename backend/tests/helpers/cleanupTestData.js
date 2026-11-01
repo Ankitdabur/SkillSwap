@@ -5,6 +5,7 @@ import SkillRequest from "../../src/models/skillRequest.model.js"
 import Match from "../../src/models/match.model.js"
 import Notification from "../../src/models/notification.model.js"
 import Message from "../../src/models/message.model.js"
+import Session from "../../src/models/session.model.js"
 
 const cleanupTestUsers = async () => {
     await User.deleteMany({
@@ -67,7 +68,9 @@ const cleanupTestSkills = async () => {
         name: {
             $in: [
                 "test-update-skill-one",
-                "test-update-skill-two"
+                "test-update-skill-two",
+                "test-session-skill",
+                "test-session-skill-two"
             ]
         }
     })
@@ -237,6 +240,48 @@ const cleanupTestMessages = async () => {
     })
 }
 
+const cleanupTestSessions = async () => {
+    const testUsers = await User.find({
+        $or: [
+            {
+                username: {
+                    $in: [
+                        "testlearner",
+                        "testteacher",
+                        "testteacherlearner"
+                    ]
+                }
+            },
+            {
+                email: {
+                    $in: [
+                        "testlearner@gmail.com",
+                        "testteacher@gmail.com",
+                        "testteacherlearner@gmail.com"
+                    ]
+                }
+            }
+        ]
+    }).select("_id")
+
+    const testUserIds = testUsers.map((user) => user._id)
+
+    await Session.deleteMany({
+        $or: [
+            {
+                teacher: {
+                    $in: testUserIds
+                }
+            },
+            {
+                learner: {
+                    $in: testUserIds
+                }
+            }
+        ]
+    })
+}
+
 export {
     cleanupTestUsers,
     cleanupTestAvailability,
@@ -244,7 +289,8 @@ export {
     cleanupTestSkillRequests,
     cleanupTestMatches,
     cleanupTestNotifications,
-    cleanupTestMessages
+    cleanupTestMessages,
+    cleanupTestSessions
 }
 
 

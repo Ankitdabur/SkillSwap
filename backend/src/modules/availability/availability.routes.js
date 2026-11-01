@@ -15,3 +15,5 @@ router.get("/me" , verifyJWT , getCurrentUserAvailability )
 // Replace the current user's availability
 router.put("/me" , verifyJWT , validateUpdateAvailability , updateCurrentUserAvailability)
 export default router
+
+//will add a endpoint which give slots of any user

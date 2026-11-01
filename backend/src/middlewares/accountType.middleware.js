@@ -25,8 +25,12 @@ const requireAccountTypes = (...allowedAccountType) => {
 }
 
 const learningAccountMiddleware = requireAccountTypes(ACCOUNT_TYPES.LEARNER , ACCOUNT_TYPES.TEACHER_LEARNER)
-
+const teachingAccountMiddleware = requireAccountTypes(
+    ACCOUNT_TYPES.TEACHER,
+    ACCOUNT_TYPES.TEACHER_LEARNER
+)
 export {
     requireAccountTypes,
-    learningAccountMiddleware
+    learningAccountMiddleware,
+    teachingAccountMiddleware
 }

@@ -338,12 +338,14 @@ The only persisted Match states are `PENDING`, `ACCEPTED`, and `BLOCKED`. A uniq
 2. Confirm the teacher and learner are the Match participants.
 3. Confirm their account types permit their assigned roles.
 4. Confirm the teacher offers the selected Skill.
-5. Validate the requested time against both participants' shared availability and the product timezone.
-6. Allow overlapping `PENDING` requests.
-7. On acceptance, check conflicts for both participants.
-8. Reject conflicting pending requests after one request is accepted.
-9. For a regular session, reserve the agreed credits in the same consistency boundary as acceptance.
-10. For a demo session, require `credits = 0` and skip reservation.
+5. Interpret every submitted date and time as IST and allow custom slots; stored Availability is a frontend suggestion and is not a booking constraint.
+6. At request creation, reject an overlap with the learner's own `ACCEPTED` Sessions, while still allowing overlapping `PENDING` requests.
+7. A learner may unsend their own `PENDING` request, which deletes its Session document.
+8. On acceptance, check conflicts for both participants.
+9. Either participant may fetch only their own overlapping `PENDING` and `ACCEPTED` Sessions for a selected Session.
+10. Acceptance leaves conflicting pending requests unchanged; afterward, either participant may explicitly handle their own conflicts through the accepted Session's conflict endpoint: teaching requests become `REJECTED`, while learning requests are deleted.
+11. For a regular session, reserve the agreed credits in the same consistency boundary as acceptance.
+12. For a demo session, require `credits = 0` and skip reservation.
 
 Either participant can cancel an accepted session before its start. A regular-session cancellation releases its reservation and notifies the other participant.
 
@@ -507,7 +509,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 ### Phase 2 Skills profiles availability and discovery
 
-**Status:** backend scope completed on 22 October 2026. Frontend work remains deliberately deferred and does not block this backend completion status. Discovery tests and final integration of completed `REGULAR` Session counts are deliberately deferred until the Session model is implemented; at that time, update the discovery service and add its unit and integration tests.
+**Status:** backend scope completed on 22 October 2026. Completed `REGULAR` Session counts were integrated into Discovery scoring and Discovery integration tests were completed on 1 November 2026. Frontend work remains deliberately deferred and does not block this backend completion status.
 
 **Goal:** make real teacher profiles searchable without AI.
 
@@ -568,17 +570,21 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 ### Phase 4 Session booking demos and cancellation
 
+**Status:** backend scope completed on 1 November 2026. Session creation, teaching/learning status lists, detail reads, conflict reads and handling, acceptance, rejection, cancellation, learner unsend, Notifications, and their model, validation, and integration tests are implemented. All current automated tests pass (61 suites and 742 tests), including 93 Session-specific tests. Frontend work remains deliberately deferred and does not block this backend completion status. Credit reservation, completion, dispute, cron, and admin-resolution work remains assigned to Phase 5.
+
 **Goal:** implement booking without completion automation or credit transfer complexity.
 
 **Backend work**
 
-- Implement Session request/list/detail using participant, account-type, Skill, and availability validation. At creation time, query for an `ACCEPTED` Match between the participants as an authorization prerequisite, without storing its `_id` in the Session.
+- Implement Session request/list/detail using participant, account-type, Skill, accepted-Match, and date/time validation. At creation time, query for an `ACCEPTED` Match between the participants as an authorization prerequisite, without storing its `_id` in the Session. Allow custom times without requiring either participant's stored Availability to match.
 - Support `REGULAR` and `DEMO` in the same workflow.
-- Allow overlapping pending requests.
-- On acceptance, detect conflicts for both participants and reject conflicting pending requests.
+- Reject creation when the learner has an overlapping accepted Session, while allowing overlapping pending requests.
+- Allow a learner to unsend and delete their own pending Session request.
+- Allow either participant to fetch only their own pending and accepted Sessions that overlap a selected Session.
+- On acceptance, detect conflicts for both participants without changing other pending requests. Provide a participant-only endpoint that marks the logged-in user's conflicting teaching requests as `REJECTED` and deletes their conflicting learning requests.
 - Store manually supplied Meet/Zoom links.
 - Implement pre-start cancellation by either participant.
-- Integrate reservation hooks for regular sessions once the agreed price is final.
+- Defer regular-session credit reservation and release to Phase 5.
 
 **Frontend work**
 
@@ -683,6 +689,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 - Authorize rooms using the same Match/user rules as REST.
 - Emit chat-message and read-state events only after database writes succeed.
 - Add reconnect and missed-event recovery through REST queries.
+- Reminder: when implementing Socket.IO and Notification polling, evaluate a durable queue such as BullMQ/Redis for asynchronous event and Notification delivery retries; polling still reads persisted Notifications from MongoDB as the source of truth.
 - Before implementing Socket.IO delivery or introducing Redis caching, finalize and implement stable pagination snapshots for real-time lists. Use an approved cursor and snapshot boundary/watermark so newly inserted records do not shift already loaded pages or cause skipped or duplicate records; any Redis cache must preserve the same pagination contract.
 
 **Frontend work**
@@ -771,12 +778,13 @@ Resolve these explicitly; do not hide them in implementation details.
 
 ## Immediate Next Steps
 
-Phase 1, Phase 2, and Phase 3 backend work are complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 4 Session-booking capabilities:
+Phase 1 through Phase 4 backend work is complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 5 credit, completion, and admin-resolution capabilities:
 
-1. Finalize the Session fields, statuses, scheduling representation, agreed-price rules, cancellation metadata, and manually supplied meeting-link rules.
-2. Implement the Session model, finalized indexes, and model tests for both `REGULAR` and `DEMO` Sessions.
-3. Implement Session request, list, detail, accept, reject, and pre-start cancellation workflows with participant, account-type, Skill, availability, and accepted-Match validation.
-4. Allow overlapping pending requests, but detect both participants' conflicts during acceptance and reject conflicting pending requests safely.
-5. After the Session model exists, integrate completed `REGULAR` Session counts into Discovery compatibility scoring and add the deliberately deferred Discovery unit and integration tests.
+1. Implement atomic regular-session credit reservation on acceptance and reservation release on cancellation; Demo Sessions continue to bypass credits.
+2. Implement teacher and learner completion confirmation plus learner dispute handling with ownership and state checks.
+3. Implement the finalized sequential 24-hour completion windows using restart-safe cron processing.
+4. Implement exactly-once credit transfer and CreditTransaction audit records for completed regular Sessions.
+5. Finalize the admin evidence-metadata location, then implement the `UNDER_REVIEW` queue and final admin complete/cancel decisions.
+6. Add the related Notifications and model, validation, concurrency, and integration tests.
 
-Do not begin credits, completion automation, cron jobs, Socket.IO, or AI until their prerequisite phases and exit criteria are complete.
+Do not begin Phase 6 reviews/reports, Phase 7 recurring Sessions, Socket.IO chat delivery, or AI work until their prerequisite phases and exit criteria are complete.

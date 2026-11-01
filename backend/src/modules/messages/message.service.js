@@ -1,4 +1,3 @@
-
 import Message from "../../models/message.model.js"
 import Match from "../../models/match.model.js"
 import User from "../../models/user.model.js"
@@ -112,7 +111,16 @@ const getChatHistoryUsersService = async (loggedInUser) => {
                         "$lastMessage.receiver",
                         "$lastMessage.sender"
                     ]
-                }
+                },
+                // lastMessage: {
+                //     content: {      can do this also
+                //         $cond: {
+                //             if: "$lastMessage.isDeleted",
+                //             then: "Message is deleted",
+                //             else: "$lastMessage.content"
+                //         }
+                //     }
+                // },
             }
         },
         {
