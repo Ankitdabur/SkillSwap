@@ -3,7 +3,7 @@ import { ERROR_CODES } from "../constants/errorCodes.js"
 import {USER_ROLES} from "../constants/enums.js"
 
 const requireRoles = (...allowedRoles) => {
-    return (req , res , next ) => {
+    return (req , _ , next ) => {
         if (!req.user){
             throw new ApiError(
                 401, 

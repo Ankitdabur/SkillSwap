@@ -238,7 +238,8 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 - `Session.sessionType` supports `REGULAR` and `DEMO`, defaulting to `REGULAR`.
 - `RecurringSchedule.credits` stores the agreed credits per generated occurrence.
 - A Session can have multiple Reviews, but only one per reviewer. Enforce a unique compound index on `{ session, reviewer }`.
-- `CreditTransaction.session` may be null for an administrative or bonus transaction.
+- A CreditTransaction contains `user`, nullable `session`, signed non-zero whole-number `amount`, `type`, `status`, and `description`, plus MongoDB/Mongoose-generated `_id`, `createdAt`, and `updatedAt` fields. Types are `SESSION_PAYMENT`, `ADMIN_BONUS`, and `ADMIN_ADJUSTMENT`; statuses are `PENDING`, `COMPLETED`, and `CANCELLED`.
+- `CreditTransaction.session` is required for `SESSION_PAYMENT` and null for `ADMIN_BONUS` or `ADMIN_ADJUSTMENT`. Each regular-session payment uses one signed row per participant: the learner row is negative and the teacher row is positive. Both rows begin `PENDING`, become `COMPLETED` when credits transfer, and become `CANCELLED` if the reservation is released without completion.
 - A Match contains `sender`, `receiver`, `pairKey`, `status`, and `blockedBy`, plus MongoDB/Mongoose-generated `_id`, `createdAt`, and `updatedAt` fields. `sender` and `receiver` are immutable and must identify different users.
 - Match status supports only `PENDING`, `ACCEPTED`, and `BLOCKED`. Rejection, cancellation, removal, and unblocking delete the Match document instead of storing terminal status values.
 - `Match.pairKey` is an internal, server-generated value made by sorting the two participant ObjectId strings and joining them. It is required, immutable, hidden from normal query results, and unique, so the same unordered pair cannot have separate forward and reverse Match documents.
@@ -268,7 +269,7 @@ Finalize enum values and query shapes before migration, then create indexes for 
 - Match: unique `pairKey`; `{ sender, status, createdAt }`; and `{ receiver, status, createdAt }`. A normal unique `pairKey` index is sufficient because rejected, cancelled, removed, and unblocked Matches are deleted rather than retained as terminal documents.
 - Availability: user and day.
 - Session: participants plus scheduledAt; status plus scheduledAt; recurringSchedule plus scheduledAt; `{ teacher, skill, sessionType, status }` for completed regular-session counts. Do not create a Match-based Session index because Session documents do not store a Match reference.
-- CreditTransaction: user plus createdAt; session; and a unique idempotency constraint matching the finalized debit/credit record design.
+- CreditTransaction: `{ user, createdAt, _id }`; session; and a partial unique `{ session, user, type }` index for `SESSION_PAYMENT` rows so each participant has at most one payment row per Session while repeated administrative transactions with `session: null` remain allowed.
 - RecurringSchedule: status plus date window; teacher; learner.
 - Message: sender/receiver plus createdAt; receiver plus isRead.
 - AIConversation: user plus updatedAt.
@@ -355,26 +356,30 @@ Relevant statuses are `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELLED`, `COMPLETIO
 
 | Scenario | Result |
 |---|---|
-| Teacher and learner confirm | Complete immediately and transfer regular-session credits |
-| Teacher confirms; learner is silent for 24 hours | Complete through `LEARNER_TIMEOUT` if no dispute exists |
-| Learner confirms; teacher is silent for 24 hours | Complete through `TEACHER_TIMEOUT` |
-| Both are silent for the first 24 hours | Open the second 24-hour learner window |
-| Both remain silent for 48 total hours | Move to `UNDER_REVIEW`; keep credits reserved |
-| Learner disputes | Move immediately to `UNDER_REVIEW` |
+| Teacher and learner confirm within 48 hours | Complete immediately and transfer regular-session credits |
+| Only the teacher has confirmed when the 48-hour deadline expires | Complete through `LEARNER_TIMEOUT` if no dispute exists |
+| Only the learner has confirmed when the 48-hour deadline expires | Complete through `TEACHER_TIMEOUT` |
+| Neither participant has confirmed when the 48-hour deadline expires | Move to `UNDER_REVIEW`; keep credits reserved |
+| Learner disputes before completion | Move immediately to `UNDER_REVIEW` |
 | Admin approves completion | Complete with method `ADMIN` and transfer regular-session credits |
 | Admin cancels | Cancel and release regular-session credits |
+
+The teacher and learner share one confirmation window beginning when the Session ends and expiring 48 hours later. Both may confirm throughout that full window. The API must enforce the deadline even if the scheduled cron check has not run yet.
 
 Only real user actions set `teacherConfirmedAt` or `learnerConfirmedAt`. Automated processing must not fabricate confirmation timestamps.
 
 ### Credit accounting
 
-`spendableCredits = credits - reservedCredits`
+`availableCredits = credits`
 
-- Reserve credits when a regular session becomes accepted.
+`totalOwnedCredits = credits + reservedCredits`
+
+- `User.credits` stores immediately available credits and `User.reservedCredits` stores locked credits. Do not subtract `reservedCredits` again when calculating spendable credits.
+- When a regular session becomes accepted, atomically require `credits >= session.credits`, decrement the learner's `credits`, increment the learner's `reservedCredits`, create the two signed `PENDING` Session-payment rows, and accept the Session. If any step fails, roll back all of them.
 - Never reserve or transfer credits for a demo session.
-- Release a reservation when an applicable cancellation occurs.
+- Release a reservation on applicable cancellation by decrementing the learner's `reservedCredits`, restoring the same amount to the learner's `credits`, and marking both pending payment rows `CANCELLED` in the same transaction.
 - Keep the reservation during a dispute or admin review.
-- On completion, debit the learner, credit the teacher, reduce the reservation, and write the audit records atomically.
+- On completion, decrement the learner's `reservedCredits`, increment the teacher's `credits`, and mark both payment rows `COMPLETED` atomically. Do not debit the learner's `credits` again because that debit already occurred at acceptance.
 - Exactly-once processing must be protected by Session state and a database uniqueness rule appropriate to the chosen transaction record shape.
 - Never calculate an authoritative balance only by trusting a client value.
 
@@ -608,14 +613,14 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 - Implement reservation and release using `credits` and `reservedCredits`.
 - Implement teacher/learner confirmations, learner disputes, and the six completion scenarios.
-- Implement node-cron checks for sequential 24-hour windows.
+- Implement restart-safe node-cron checks for the shared 48-hour confirmation deadline.
 - Implement atomic, exactly-once completion transfer and CreditTransaction records.
 - Implement the admin `UNDER_REVIEW` queue, evidence request/deadline behavior after its schema decision, and final complete/cancel actions.
 - Generate Notifications for completion, dispute, evidence, cancellation, and admin decisions.
 
 **Frontend work**
 
-- Show total, reserved, and spendable credits clearly.
+- Show available (`credits`), reserved, and total-owned (`credits + reservedCredits`) balances clearly.
 - Confirmation/dispute UI with current status and deadlines.
 - Credit transaction history.
 - Admin session-review queue and resolution workflow.
@@ -771,18 +776,17 @@ Each phase should add tests for both allowed behavior and attempts by the wrong 
 
 Resolve these explicitly; do not hide them in implementation details.
 
-1. **Credit ledger shape:** exactly-once transfer needs a unique database guard. Finalize whether CreditTransaction stores one signed row per user or another approved representation before Phase 5.
-2. **Admin evidence storage:** evidence photos and individual deadlines are required, while a separate evidence collection and unapproved Session fields are excluded. Decide where approved metadata is stored before building that workflow.
-3. **Recurring insufficient credits:** the skip-and-notify rule is provisional and must be reconfirmed in Phase 7.
-4. **AI privacy and cost:** provider, data retention, input limits, rate limits, and consent for long-chat summaries must be decided before Phase 9.
+1. **Admin evidence storage:** evidence photos and individual deadlines are required, while a separate evidence collection and unapproved Session fields are excluded. Decide where approved metadata is stored before building that workflow.
+2. **Recurring insufficient credits:** the skip-and-notify rule is provisional and must be reconfirmed in Phase 7.
+3. **AI privacy and cost:** provider, data retention, input limits, rate limits, and consent for long-chat summaries must be decided before Phase 9.
 
 ## Immediate Next Steps
 
 Phase 1 through Phase 4 backend work is complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 5 credit, completion, and admin-resolution capabilities:
 
-1. Implement atomic regular-session credit reservation on acceptance and reservation release on cancellation; Demo Sessions continue to bypass credits.
+1. Implement atomic regular-session credit movement from `credits` to `reservedCredits` on acceptance and restore it on cancellation; Demo Sessions continue to bypass credits.
 2. Implement teacher and learner completion confirmation plus learner dispute handling with ownership and state checks.
-3. Implement the finalized sequential 24-hour completion windows using restart-safe cron processing.
+3. Implement the finalized shared 48-hour completion window using restart-safe cron processing.
 4. Implement exactly-once credit transfer and CreditTransaction audit records for completed regular Sessions.
 5. Finalize the admin evidence-metadata location, then implement the `UNDER_REVIEW` queue and final admin complete/cancel decisions.
 6. Add the related Notifications and model, validation, concurrency, and integration tests.

@@ -1,6 +1,7 @@
 import mongoose from "mongoose"
 import {
     COMPLETION_METHODS,
+    SESSION_COMPLETION_RESPONSES,
     SESSION_DURATIONS,
     SESSION_STATUSES,
     SESSION_TYPES
@@ -108,11 +109,11 @@ const sessionSchema = new mongoose.Schema(
             enum: Object.values(COMPLETION_METHODS),
             default: null,
             required: function(){
-                return this.status === SESSION_STATUSES.COMPLETED
+                return this.get("status") === SESSION_STATUSES.COMPLETED
             },
             validate: {
                 validator: function(completionMethod){
-                    if(this.status === SESSION_STATUSES.COMPLETED){
+                    if(this.get("status") === SESSION_STATUSES.COMPLETED){
                         return completionMethod !== null
                     }
 
@@ -122,12 +123,27 @@ const sessionSchema = new mongoose.Schema(
             }
         },
 
-        teacherConfirmedAt: {
+        teacherCompletionResponse: {
+            type: String,
+            enum: [
+                SESSION_COMPLETION_RESPONSES.CONFIRMED,
+                SESSION_COMPLETION_RESPONSES.DID_NOT_HAPPEN
+            ],
+            default: null
+        },
+
+        teacherRespondedAt: {
             type: Date,
             default: null
         },
 
-        learnerConfirmedAt: {
+        learnerCompletionResponse: {
+            type: String,
+            enum: Object.values(SESSION_COMPLETION_RESPONSES),
+            default: null
+        },
+
+        learnerRespondedAt: {
             type: Date,
             default: null
         },

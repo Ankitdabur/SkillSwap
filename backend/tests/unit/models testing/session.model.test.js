@@ -2,6 +2,7 @@ import mongoose from "mongoose"
 import Session from "../../../src/models/session.model.js"
 import {
     COMPLETION_METHODS,
+    SESSION_COMPLETION_RESPONSES,
     SESSION_DURATIONS,
     SESSION_STATUSES,
     SESSION_TYPES
@@ -543,15 +544,51 @@ describe("Session Model", () => {
     })
 
 
-    // CONFIRMATION TIMES
+    // COMPLETION RESPONSES
 
 
-    test("Confirmation times default to null", () => {
+    test("Completion responses and response times default to null", () => {
 
         const session = new Session(createSessionData())
 
-        expect(session.teacherConfirmedAt).toBeNull()
-        expect(session.learnerConfirmedAt).toBeNull()
+        expect(session.teacherCompletionResponse).toBeNull()
+        expect(session.teacherRespondedAt).toBeNull()
+        expect(session.learnerCompletionResponse).toBeNull()
+        expect(session.learnerRespondedAt).toBeNull()
+
+    })
+
+
+    test("Teacher cannot submit a dispute response", async () => {
+
+        const session = new Session(
+            createSessionData({
+                teacherCompletionResponse:
+                    SESSION_COMPLETION_RESPONSES.DISPUTE
+            })
+        )
+
+        const error = await getValidationError(session)
+
+        expect(error).toBeDefined()
+        expect(
+            hasFieldError(error, "teacherCompletionResponse")
+        ).toBe(true)
+
+    })
+
+
+    test("Learner can submit a dispute response", async () => {
+
+        const session = new Session(
+            createSessionData({
+                learnerCompletionResponse:
+                    SESSION_COMPLETION_RESPONSES.DISPUTE,
+                learnerRespondedAt: new Date()
+            })
+        )
+
+        await expect(session.validate()).resolves.toBeUndefined()
 
     })
 

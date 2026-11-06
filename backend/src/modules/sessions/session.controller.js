@@ -9,6 +9,9 @@ import {
     rejectConflictingSessionsService,
     rejectSessionService,
     cancelSessionService,
+    confirmSessionCompletionService,
+    reportSessionDidNotHappenService,
+    disputeSessionService,
     unsendSessionService,
     getConflictingSessionsService
 } from "./session.service.js"
@@ -168,6 +171,63 @@ const cancelSession = asyncHandler(async (req, res) => {
 })
 
 
+const confirmSessionCompletion = asyncHandler(async (req, res) => {
+
+    const sessionData = await confirmSessionCompletionService(
+        req.user._id,
+        req.params.sessionId
+    )
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            sessionData,
+            "Session completion confirmed successfully"
+        )
+    )
+})
+
+
+const reportSessionDidNotHappen = asyncHandler(async (req, res) => {
+
+    const sessionData = await reportSessionDidNotHappenService(
+        req.user._id,
+        req.params.sessionId
+    )
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            sessionData,
+            "Session marked as not happened successfully"
+        )
+    )
+})
+
+
+const disputeSession = asyncHandler(async (req, res) => {
+
+    const sessionData = await disputeSessionService(
+        req.user._id,
+        req.params.sessionId
+    )
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            sessionData,
+            "Session disputed successfully"
+        )
+    )
+})
+
+
 const unsendSession = asyncHandler(async (req, res) => {
 
     const sessionData = await unsendSessionService(
@@ -215,6 +275,9 @@ export {
     rejectConflictingSessions,
     rejectSession,
     cancelSession,
+    confirmSessionCompletion,
+    reportSessionDidNotHappen,
+    disputeSession,
     unsendSession,
     getConflictingSessions
 }

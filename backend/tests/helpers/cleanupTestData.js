@@ -6,6 +6,7 @@ import Match from "../../src/models/match.model.js"
 import Notification from "../../src/models/notification.model.js"
 import Message from "../../src/models/message.model.js"
 import Session from "../../src/models/session.model.js"
+import CreditTransaction from "../../src/models/creditTransaction.model.js"
 
 const cleanupTestUsers = async () => {
     await User.deleteMany({
@@ -282,6 +283,37 @@ const cleanupTestSessions = async () => {
     })
 }
 
+const cleanupTestCreditTransactions = async () => {
+    const testUsers = await User.find({
+        $or: [
+            {
+                username: {
+                    $in: [
+                        "testlearner",
+                        "testteacher",
+                        "testteacherlearner"
+                    ]
+                }
+            },
+            {
+                email: {
+                    $in: [
+                        "testlearner@gmail.com",
+                        "testteacher@gmail.com",
+                        "testteacherlearner@gmail.com"
+                    ]
+                }
+            }
+        ]
+    }).select("_id")
+
+    await CreditTransaction.deleteMany({
+        user: {
+            $in: testUsers.map((user) => user._id)
+        }
+    })
+}
+
 export {
     cleanupTestUsers,
     cleanupTestAvailability,
@@ -290,7 +322,8 @@ export {
     cleanupTestMatches,
     cleanupTestNotifications,
     cleanupTestMessages,
-    cleanupTestSessions
+    cleanupTestSessions,
+    cleanupTestCreditTransactions
 }
 
 

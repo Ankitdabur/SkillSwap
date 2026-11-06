@@ -20,6 +20,9 @@ import {
     rejectConflictingSessions,
     rejectSession,
     cancelSession,
+    confirmSessionCompletion,
+    reportSessionDidNotHappen,
+    disputeSession,
     unsendSession,
     getConflictingSessions
 } from "./session.controller.js"
@@ -43,6 +46,12 @@ router.patch("/:sessionId/reject", verifyJWT, teachingAccountMiddleware, validat
 router.patch("/:sessionId/reject-conflicts", verifyJWT, validateSessionId, rejectConflictingSessions)
 // Cancel an accepted Session before it starts
 router.patch("/:sessionId/cancel", verifyJWT, validateSessionId, cancelSession)
+// Confirm Session completion as its teacher or learner
+router.patch("/:sessionId/confirm-completion", verifyJWT, validateSessionId, confirmSessionCompletion)
+// Report that a Session did not happen as its teacher or learner
+router.patch("/:sessionId/did-not-happen", verifyJWT, validateSessionId, reportSessionDidNotHappen)
+// Dispute a Session as its learner
+router.patch("/:sessionId/dispute", verifyJWT, learningAccountMiddleware, validateSessionId, disputeSession)
 // Unsend and delete a pending Session request as its learner
 router.delete("/:sessionId/unsend", verifyJWT, learningAccountMiddleware, validateSessionId, unsendSession)
 // Get the logged-in participant's pending and accepted conflicts

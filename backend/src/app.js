@@ -37,7 +37,6 @@ app.use("/api/v1/messages", messageRouter)
 app.use("/api/v1/sessions", sessionRouter)
 //not found middleware
 app.use(notFound)
-
 //errhandler
 app.use(errorHandler)
 
