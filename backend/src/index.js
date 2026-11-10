@@ -1,7 +1,8 @@
 import app from "./app.js"
 import { dbconnect } from "./db/index.js"
 import {validateEnvironment} from "./utils/validateEnvironment.js"
-import cron from "node-cron";
+import cron from "node-cron"
+import { processExpiredSessionCompletions } from "./node-cron.js"
 
 
 
@@ -36,15 +37,11 @@ const startServer = async () => {
 
 }
 
+cron.schedule("* * * * *", processExpiredSessionCompletions,
+            {
+                name: "session-completion-timeout",
+                noOverlap: true
+            }
+        )
 
 startServer()
-
-
-
-console.log("Application started");
-
-cron.schedule("*/5 * * * * *", () => {
-  console.log("Cron job executed:", new Date().toLocaleTimeString());
-});
-
-console.log("Cron job registered");
