@@ -26,7 +26,7 @@ const startServer = async () => {
 
     } catch (error) {
 
-        console.error(
+        console.error( 
             "Application startup failed:",
             error.message
         )
