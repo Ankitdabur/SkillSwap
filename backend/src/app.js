@@ -13,6 +13,8 @@ import matchRouter from "./modules/matches/match.routes.js"
 import notificationRouter from "./modules/notifications/notification.routes.js"
 import messageRouter from "./modules/messages/message.routes.js"
 import sessionRouter from "./modules/sessions/session.routes.js"
+import adminRouter from "./modules/admin/admin.routes.js"
+import creditTransactionRouter from "./modules/creditTransactions/creditTransaction.routes.js"
 const app = express()
 
 app.use(cors(
@@ -35,6 +37,8 @@ app.use("/api/v1/matches" , matchRouter)
 app.use("/api/v1/notifications", notificationRouter)
 app.use("/api/v1/messages", messageRouter)
 app.use("/api/v1/sessions", sessionRouter)
+app.use("/api/v1/admin", adminRouter)
+app.use("/api/v1/credit-transactions", creditTransactionRouter)
 //not found middleware
 app.use(notFound)
 //errhandler
