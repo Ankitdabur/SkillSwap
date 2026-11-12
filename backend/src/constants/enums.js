@@ -156,4 +156,5 @@ export const NOTIFICATION_TYPES = {
 export const MESSAGE_TYPES = {
   TEXT: "TEXT",
   AI_SUMMARY: "AI_SUMMARY",
+  ADMIN_REVIEW: "ADMIN_REVIEW",
 };

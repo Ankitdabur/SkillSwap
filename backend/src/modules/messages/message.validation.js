@@ -50,6 +50,12 @@ const validateSendMessage = (req, _res, next) => {
         content
     } = body
 
+    const contentMissing = (
+        content === undefined ||
+        content === null ||
+        content === ""
+    )
+
     if(
         receiverId === undefined ||
         receiverId === null ||
@@ -77,20 +83,16 @@ const validateSendMessage = (req, _res, next) => {
         )
     }
 
-    if(
-        content === undefined ||
-        content === null ||
-        content === ""
-    ){
+    if(contentMissing && !req.file){
         addError(
             "content",
-            "Message content is required",
+            "Message content or image is required",
             ERROR_CODES.MISSING_REQUIRED_FIELDS
         )
-    }else if(
+    }else if(!contentMissing && (
         typeof content !== "string" ||
         content.trim() === ""
-    ){
+    )){
         addError(
             "content",
             "Message content must be a non-empty string",
@@ -107,7 +109,9 @@ const validateSendMessage = (req, _res, next) => {
         )
     }
 
-    req.body.content = content.trim()
+    req.body.content = contentMissing
+        ? null
+        : content.trim()
 
     next()
 }

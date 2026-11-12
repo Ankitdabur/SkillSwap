@@ -1,24 +1,41 @@
 import Message from "../../models/message.model.js"
 import Match from "../../models/match.model.js"
+import Session from "../../models/session.model.js"
 import User from "../../models/user.model.js"
 import ApiError from "../../utils/ApiError.js"
+import uploadOnCloudinary from "../../utils/cloudinary.js"
 import { ERROR_CODES } from "../../constants/errorCodes.js"
-import { MATCH_STATUSES } from "../../constants/enums.js"
+import {
+    MATCH_STATUSES,
+    MESSAGE_TYPES,
+    SESSION_STATUSES,
+    USER_ROLES
+} from "../../constants/enums.js"
 
 
 const sendMessageService = async (
     senderId,
     receiverId,
-    content
+    content,
+    imageLocalPath
 ) => {
 
-    const receiverExists = await User.exists({_id: receiverId})
+    const sender = await User.findById(senderId).select("role")
+    const receiver = await User.findById(receiverId).select("role")
 
-    if(!receiverExists){
+    if(!receiver){
         throw new ApiError(
             404,
             "Receiver not found",
             ERROR_CODES.USER_NOT_FOUND
+        )
+    }
+
+    if(!sender){
+        throw new ApiError(
+            401,
+            "Sender not found",
+            ERROR_CODES.AUTHENTICATION_REQUIRED
         )
     }
 
@@ -29,23 +46,90 @@ const sendMessageService = async (
         .sort()
         .join(":")
 
-    const acceptedMatch = await Match.exists({
-        pairKey: conversationKey,
-        status: MATCH_STATUSES.ACCEPTED
-    })
+    const senderIsAdmin = sender.role === USER_ROLES.ADMIN
+    const receiverIsAdmin = receiver.role === USER_ROLES.ADMIN
 
-    if(!acceptedMatch){
-        throw new ApiError(
-            403,
-            "Messages can only be sent between accepted Matches",
-            ERROR_CODES.FORBIDDEN
-        )
+    let messageType = MESSAGE_TYPES.TEXT
+
+    if(senderIsAdmin || receiverIsAdmin){
+        const participantId = senderIsAdmin
+            ? receiverId
+            : senderId
+
+        const activeReview = await Session.exists({
+            status: SESSION_STATUSES.UNDER_REVIEW,
+            $or: [
+                {
+                    teacher: participantId
+                },
+                {
+                    learner: participantId
+                }
+            ]
+        })
+
+        if(!activeReview){
+            throw new ApiError(
+                403,
+                "Admin review conversation is read-only",
+                ERROR_CODES.FORBIDDEN
+            )
+        }
+
+        if(receiverIsAdmin){
+            const reviewConversationStarted = await Message.exists({
+                sender: receiverId,
+                receiver: senderId,
+                messageType: MESSAGE_TYPES.ADMIN_REVIEW
+            })
+
+            if(!reviewConversationStarted){
+                throw new ApiError(
+                    403,
+                    "Only the admin can start a review conversation",
+                    ERROR_CODES.FORBIDDEN
+                )
+            }
+        }
+
+        messageType = MESSAGE_TYPES.ADMIN_REVIEW
+    }else{
+        const acceptedMatch = await Match.exists({
+            pairKey: conversationKey,
+            status: MATCH_STATUSES.ACCEPTED
+        })
+
+        if(!acceptedMatch){
+            throw new ApiError(
+                403,
+                "Messages can only be sent between accepted Matches",
+                ERROR_CODES.FORBIDDEN
+            )
+        }
+    }
+
+    let imageUrl = null
+
+    if(imageLocalPath){
+        const uploadedImage = await uploadOnCloudinary(imageLocalPath)
+
+        if(!uploadedImage?.secure_url){
+            throw new ApiError(
+                500,
+                "Message image upload failed",
+                ERROR_CODES.INTERNAL_SERVER_ERROR
+            )
+        }
+
+        imageUrl = uploadedImage.secure_url
     }
 
     const createdMessage = await Message.create({
         sender: senderId,
         receiver: receiverId,
-        content
+        messageType,
+        content,
+        imageUrl
     })
 
     const message = await Message.findById(createdMessage._id)
@@ -155,6 +239,13 @@ const getChatHistoryUsersService = async (loggedInUser) => {
                             if: "$lastMessage.isDeleted",
                             then: "Message is deleted",
                             else: "$lastMessage.content"
+                        }
+                    },
+                    imageUrl: {
+                        $cond: {
+                            if: "$lastMessage.isDeleted",
+                            then: null,
+                            else: "$lastMessage.imageUrl"
                         }
                     }
                 },
@@ -269,6 +360,13 @@ const getConversationMessagesService = async (
                         then : "Message is deleted",
                         else : "$content"
                     }
+                },
+                imageUrl: {
+                    $cond: {
+                        if: "$isDeleted",
+                        then: null,
+                        else: "$imageUrl"
+                    }
                 }
             }
         },
@@ -356,6 +454,14 @@ const deleteMessageService = async (
         throw new ApiError(
             403,
             "Only the Message sender can delete this Message",
+            ERROR_CODES.FORBIDDEN
+        )
+    }
+
+    if(message.messageType === MESSAGE_TYPES.ADMIN_REVIEW){
+        throw new ApiError(
+            403,
+            "Admin review Messages cannot be deleted",
             ERROR_CODES.FORBIDDEN
         )
     }

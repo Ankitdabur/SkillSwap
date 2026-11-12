@@ -63,6 +63,13 @@ const sessionSchema = new mongoose.Schema(
             default: null
         },
 
+        adminResponse: {
+            type: String,
+            trim: true,
+            maxlength: 500,
+            default: null
+        },
+
         status: {
             type: String,
             enum: Object.values(SESSION_STATUSES),

@@ -15,7 +15,8 @@ const sendMessage = asyncHandler(async (req, res) => {
     const messageData = await sendMessageService(
         req.user._id,
         req.body.receiverId,
-        req.body.content
+        req.body.content,
+        req.file?.path || null
     )
 
     return res

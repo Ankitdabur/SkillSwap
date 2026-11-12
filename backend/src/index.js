@@ -37,11 +37,5 @@ const startServer = async () => {
 
 }
 
-cron.schedule("* * * * *", processExpiredSessionCompletions,
-            {
-                name: "session-completion-timeout",
-                noOverlap: true
-            }
-        )
 
 startServer()

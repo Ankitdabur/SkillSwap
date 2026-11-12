@@ -41,9 +41,36 @@ const messageSchema = new mongoose.Schema(
 
         content: {
             type: String,
-            required: true,
+            default: null,
+            required: function(){
+                return !this.imageUrl
+            },
             trim: true,
             immutable: true
+        },
+
+        imageUrl: {
+            type: String,
+            default: null,
+            required: function(){
+                return !this.content
+            },
+            trim: true,
+            immutable: true,
+            validate: {
+                validator: function(imageUrl){
+                    if(imageUrl === null || imageUrl === undefined){
+                        return true
+                    }
+
+                    try{
+                        return new URL(imageUrl).protocol === "https:"
+                    }catch{
+                        return false
+                    }
+                },
+                message: "Message image URL must be a valid HTTPS URL"
+            }
         },
 
         isRead: {

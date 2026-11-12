@@ -748,6 +748,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 - Add security headers, strict CORS, payload limits, upload type/size checks, and secret management.
 - Add structured logs, request IDs, audit events for sensitive admin/credit actions, health checks, and alerts.
 - Add database backup/restore procedures and migration/index deployment steps.
+- Reminder: at the end of all implementation phases, implement automated database backups using a cron daemon and verify that a backup can be restored.
 - At the end of all implementation phases, audit every model's indexes against its actual query, sorting, uniqueness, and pagination patterns. Remove redundant indexes and add any missing compound indexes before release.
 - Run unit, integration, transaction/concurrency, cron recovery, Socket.IO, authorization, and end-to-end tests.
 - Test accessibility, responsive behavior, loading states, empty states, and error recovery in the frontend.

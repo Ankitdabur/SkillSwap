@@ -1,6 +1,7 @@
 
 import { Router } from "express"
 import { verifyJWT } from "../../middlewares/auth.middleware.js"
+import upload from "../../middlewares/multer.middleware.js"
 import {
     validateSendMessage,
     validateMessageUserId,
@@ -20,7 +21,7 @@ const router = Router()
 
 
 // Send a message to an accepted Match
-router.post("/", verifyJWT, validateSendMessage, sendMessage)
+router.post("/", verifyJWT, upload.single("image"), validateSendMessage, sendMessage)
 // Get users with whom the current user has chat history
 router.get("/conversations", verifyJWT, getChatHistoryUsers)
 // Get paginated messages with another user
