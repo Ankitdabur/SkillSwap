@@ -228,10 +228,10 @@ const getChatHistoryUsersService = async (loggedInUser) => {
             $project: {
                 _id: 0,
                 user: {
-                    _id: "$user._id",
-                    username: "$user.username",
-                    fullname: "$user.fullname",
-                    avatar: "$user.avatar"
+                    _id: 1,
+                    username: 1,
+                    fullname: 1,
+                    avatar: 1
                 },
                 lastMessage: {
                     content: {

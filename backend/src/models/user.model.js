@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import {
   USER_ROLES,
   ACCOUNT_TYPES,
+  ACCOUNT_STATUSES,
   TEACHING_STYLES,
   LANGUAGES,
 } from "../constants/enums.js";
@@ -69,6 +70,34 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: Object.values(ACCOUNT_TYPES),
       required: true,
+    },
+
+    accountStatus: {
+      type: String,
+      enum: Object.values(ACCOUNT_STATUSES),
+      default: ACCOUNT_STATUSES.ACTIVE,
+      required: true,
+    },
+
+    suspendedUntil: {
+      type: Date,
+      default: null,
+      required: function () {
+        return this.get("accountStatus") === ACCOUNT_STATUSES.SUSPENDED;
+      },
+      validate: {
+        validator: function (suspendedUntil) {
+          const accountStatus = this.get("accountStatus");
+
+          if (accountStatus === ACCOUNT_STATUSES.SUSPENDED) {
+            return suspendedUntil instanceof Date &&
+              suspendedUntil > new Date();
+          }
+
+          return suspendedUntil === null;
+        },
+        message: "Suspended until must be a future date only for suspended accounts",
+      },
     },
 
     languages: {
@@ -147,6 +176,13 @@ const userSchema = new mongoose.Schema(
     },
 
     totalReviews: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+    },
+
+    totalReports: {
       type: Number,
       required: true,
       default: 0,

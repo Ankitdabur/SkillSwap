@@ -7,6 +7,7 @@ import Notification from "../../src/models/notification.model.js"
 import Message from "../../src/models/message.model.js"
 import Session from "../../src/models/session.model.js"
 import CreditTransaction from "../../src/models/creditTransaction.model.js"
+import Review from "../../src/models/review.model.js"
 
 const cleanupTestUsers = async () => {
     await User.deleteMany({
@@ -316,6 +317,48 @@ const cleanupTestCreditTransactions = async () => {
     })
 }
 
+const cleanupTestReviews = async () => {
+    const testUsers = await User.find({
+        $or: [
+            {
+                username: {
+                    $in: [
+                        "testlearner",
+                        "testteacher",
+                        "testteacherlearner"
+                    ]
+                }
+            },
+            {
+                email: {
+                    $in: [
+                        "testlearner@gmail.com",
+                        "testteacher@gmail.com",
+                        "testteacherlearner@gmail.com"
+                    ]
+                }
+            }
+        ]
+    }).select("_id")
+
+    const testUserIds = testUsers.map((user) => user._id)
+
+    await Review.deleteMany({
+        $or: [
+            {
+                reviewer: {
+                    $in: testUserIds
+                }
+            },
+            {
+                reviewedUser: {
+                    $in: testUserIds
+                }
+            }
+        ]
+    })
+}
+
 export {
     cleanupTestUsers,
     cleanupTestAvailability,
@@ -325,7 +368,8 @@ export {
     cleanupTestNotifications,
     cleanupTestMessages,
     cleanupTestSessions,
-    cleanupTestCreditTransactions
+    cleanupTestCreditTransactions,
+    cleanupTestReviews
 }
 
 

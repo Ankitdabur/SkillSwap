@@ -1,5 +1,6 @@
 import { Router } from "express"
 import { verifyJWT } from "../../middlewares/auth.middleware.js"
+import { checkAccountStatus } from "../../middlewares/accountStatus.middleware.js"
 import {
     validateSendMatchRequest,
     validateMatchId,
@@ -24,27 +25,27 @@ const router = Router()
 
 
 // Send a Match request to another user
-router.post("/", verifyJWT, validateSendMatchRequest, sendMatchRequest)
+router.post("/", verifyJWT, checkAccountStatus, validateSendMatchRequest, sendMatchRequest)
 // Get incoming pending Match requests
-router.get("/pending/incoming", verifyJWT, getIncomingPendingMatches)
+router.get("/pending/incoming", verifyJWT, checkAccountStatus, getIncomingPendingMatches)
 // Get outgoing pending Match requests
-router.get("/pending/outgoing", verifyJWT, getOutgoingPendingMatches)
+router.get("/pending/outgoing", verifyJWT, checkAccountStatus, getOutgoingPendingMatches)
 // Get all accepted Matches
-router.get("/accepted", verifyJWT, getAcceptedMatches)
+router.get("/accepted", verifyJWT, checkAccountStatus, getAcceptedMatches)
 // Get all blocked users
-router.get("/blocked", verifyJWT, getBlockedMatches)
+router.get("/blocked", verifyJWT, checkAccountStatus, getBlockedMatches)
 // Block another user
-router.put("/block/:userId", verifyJWT, validateMatchUserId, blockUser)
+router.put("/block/:userId", verifyJWT, checkAccountStatus, validateMatchUserId, blockUser)
 // Unblock a blocked user
-router.delete("/block/:userId", verifyJWT, validateMatchUserId, unblockUser)
+router.delete("/block/:userId", verifyJWT, checkAccountStatus, validateMatchUserId, unblockUser)
 // Accept an incoming Match request
-router.patch("/:matchId/accept", verifyJWT, validateMatchId, acceptMatch)
+router.patch("/:matchId/accept", verifyJWT, checkAccountStatus, validateMatchId, acceptMatch)
 // Reject an incoming Match request
-router.delete("/:matchId/reject", verifyJWT, validateMatchId, rejectMatch)
+router.delete("/:matchId/reject", verifyJWT, checkAccountStatus, validateMatchId, rejectMatch)
 // Cancel an outgoing Match request
-router.delete("/:matchId/cancel", verifyJWT, validateMatchId, cancelMatch)
+router.delete("/:matchId/cancel", verifyJWT, checkAccountStatus, validateMatchId, cancelMatch)
 // Remove an accepted Match
-router.delete("/:matchId/remove", verifyJWT, validateMatchId, removeMatch)
+router.delete("/:matchId/remove", verifyJWT, checkAccountStatus, validateMatchId, removeMatch)
 
 
 export default router

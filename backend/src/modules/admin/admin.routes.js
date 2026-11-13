@@ -1,5 +1,6 @@
 import { Router } from "express"
 import { verifyJWT } from "../../middlewares/auth.middleware.js"
+import { checkAccountStatus } from "../../middlewares/accountStatus.middleware.js"
 import { adminRoleMiddleware } from "../../middlewares/role.middleware.js"
 import { validateSessionId } from "../sessions/session.validation.js"
 import {
@@ -16,7 +17,7 @@ import {
 const router = Router()
 
 
-router.use(verifyJWT, adminRoleMiddleware)
+router.use(verifyJWT, checkAccountStatus, adminRoleMiddleware)
 
 // Get under-review Sessions with cursor pagination
 router.get("/sessions/under-review" , validateGetUnderReviewSessions , getUnderReviewSessions)

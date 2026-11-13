@@ -1,5 +1,6 @@
 import {Router} from "express"
 import { verifyJWT } from "../../middlewares/auth.middleware.js"
+import { checkAccountStatus } from "../../middlewares/accountStatus.middleware.js"
 import {
     getCurrentUserAvailability,
     updateCurrentUserAvailability
@@ -11,9 +12,9 @@ import {
 const router = Router()
 
 // Get the current user's availability
-router.get("/me" , verifyJWT , getCurrentUserAvailability )
+router.get("/me" , verifyJWT , checkAccountStatus , getCurrentUserAvailability )
 // Replace the current user's availability
-router.put("/me" , verifyJWT , validateUpdateAvailability , updateCurrentUserAvailability)
+router.put("/me" , verifyJWT , checkAccountStatus , validateUpdateAvailability , updateCurrentUserAvailability)
 export default router
 
 //will add a endpoint which give slots of any user

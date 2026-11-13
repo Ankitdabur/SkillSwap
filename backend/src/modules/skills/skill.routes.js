@@ -1,5 +1,6 @@
 import {Router} from "express"
 import {verifyJWT} from "../../middlewares/auth.middleware.js"
+import {checkAccountStatus} from "../../middlewares/accountStatus.middleware.js"
 import {adminRoleMiddleware} from "../../middlewares/role.middleware.js"
 import {
     getSkillCategories,
@@ -25,8 +26,8 @@ router.get("/categories" , getSkillCategories)
 // Get one Skill by its ID
 router.get("/:skillId" , validateSkillId , getSkillById)
 // Create a new predefined Skill
-router.post("/" , verifyJWT , adminRoleMiddleware , validateCreateSkill , createSkill)
+router.post("/" , verifyJWT , checkAccountStatus , adminRoleMiddleware , validateCreateSkill , createSkill)
 // Replace an existing Skill's details
-router.put("/:skillId" , verifyJWT , adminRoleMiddleware , validateSkillId , validateCreateSkill , updateSkill)
+router.put("/:skillId" , verifyJWT , checkAccountStatus , adminRoleMiddleware , validateSkillId , validateCreateSkill , updateSkill)
 
 export default router

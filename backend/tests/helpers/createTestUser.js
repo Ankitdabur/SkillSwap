@@ -7,6 +7,7 @@ import Notification from "../../src/models/notification.model.js"
 import Message from "../../src/models/message.model.js"
 import Session from "../../src/models/session.model.js"
 import CreditTransaction from "../../src/models/creditTransaction.model.js"
+import Review from "../../src/models/review.model.js"
 import {
     ACCOUNT_TYPES,
     COMPLETION_METHODS,
@@ -264,6 +265,24 @@ const createTestCreditTransaction = async (
     return creditTransaction
 }
 
+const createTestReview = async (
+    sessionId,
+    reviewerId,
+    reviewedUserId,
+    overrides = {}
+) => {
+    const review = await Review.create({
+        session: sessionId,
+        reviewer: reviewerId,
+        reviewedUser: reviewedUserId,
+        rating: 5,
+        comment: "Review created for integration testing",
+        ...overrides
+    })
+
+    return review
+}
+
 export {
     createTestLearner,
     createTestTeacher,
@@ -275,5 +294,6 @@ export {
     createTestNotification,
     createTestMessage,
     createTestSession,
-    createTestCreditTransaction
+    createTestCreditTransaction,
+    createTestReview
 }

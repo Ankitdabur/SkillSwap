@@ -14,6 +14,7 @@ import {
   verifyRefreshToken,
   compareRefreshToken
 } from "../../utils/token.js";
+import { checkUserAccountStatus } from "../users/accountStatus.service.js";
 
 
 // REGISTER 
@@ -221,12 +222,14 @@ const loginUserService = async (userData) => {
     );
   }
 
+  const activeUser = await checkUserAccountStatus(user);
+
 
   // generate tokens
 
-  const accessToken = generateAccessToken(user._id);
+  const accessToken = generateAccessToken(activeUser._id);
 
-  const refreshToken = generateRefreshToken(user._id);
+  const refreshToken = generateRefreshToken(activeUser._id);
 
 
   // hash refresh token before storing in database
@@ -237,7 +240,7 @@ const loginUserService = async (userData) => {
   // store refresh token hash
 
   const loggedInUser = await User.findByIdAndUpdate(
-    user._id,
+    activeUser._id,
     {
       $set: {
         refreshTokenHash,
@@ -293,14 +296,16 @@ const refreshUserService = async (incomingRefreshToken) => {
     );
   }
 
-  const accessToken = generateAccessToken(user._id);
+  const activeUser = await checkUserAccountStatus(user);
 
-  const refreshToken = generateRefreshToken(user._id);
+  const accessToken = generateAccessToken(activeUser._id);
+
+  const refreshToken = generateRefreshToken(activeUser._id);
 
   const refreshTokenHash = await hashRefreshToken(refreshToken);
   
   const updatedUser = await User.findByIdAndUpdate(
-  user._id,
+  activeUser._id,
   {
     $set: { refreshTokenHash },
   },

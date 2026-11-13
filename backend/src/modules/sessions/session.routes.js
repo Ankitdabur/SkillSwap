@@ -1,5 +1,6 @@
 import { Router } from "express"
 import { verifyJWT } from "../../middlewares/auth.middleware.js"
+import { checkAccountStatus } from "../../middlewares/accountStatus.middleware.js"
 import {
     learningAccountMiddleware,
     teachingAccountMiddleware
@@ -33,31 +34,31 @@ const router = Router()
 
 
 // Create a Session request
-router.post( "/", verifyJWT , learningAccountMiddleware , validateCreateSession , createSession)
+router.post( "/", verifyJWT , checkAccountStatus , learningAccountMiddleware , validateCreateSession , createSession)
 // Get the logged-in user's teaching Sessions by status
-router.get("/me/teaching/:status", verifyJWT, teachingAccountMiddleware, validateGetSessionsByStatus, getTeachingSessions)
+router.get("/me/teaching/:status", verifyJWT, checkAccountStatus, teachingAccountMiddleware, validateGetSessionsByStatus, getTeachingSessions)
 // Get the logged-in user's learning Sessions by status
-router.get("/me/learning/:status", verifyJWT, learningAccountMiddleware, validateGetSessionsByStatus, getLearningSessions)
+router.get("/me/learning/:status", verifyJWT, checkAccountStatus, learningAccountMiddleware, validateGetSessionsByStatus, getLearningSessions)
 // Accept a pending Session as its assigned teacher
-router.patch("/:sessionId/accept", verifyJWT, teachingAccountMiddleware, validateSessionId, validateAcceptSession, acceptSession)
+router.patch("/:sessionId/accept", verifyJWT, checkAccountStatus, teachingAccountMiddleware, validateSessionId, validateAcceptSession, acceptSession)
 // Reject a pending Session as its assigned teacher
-router.patch("/:sessionId/reject", verifyJWT, teachingAccountMiddleware, validateSessionId, validateRejectSession, rejectSession)
+router.patch("/:sessionId/reject", verifyJWT, checkAccountStatus, teachingAccountMiddleware, validateSessionId, validateRejectSession, rejectSession)
 // Reject teaching conflicts and delete learning conflicts
-router.patch("/:sessionId/reject-conflicts", verifyJWT, validateSessionId, rejectConflictingSessions)
+router.patch("/:sessionId/reject-conflicts", verifyJWT, checkAccountStatus, validateSessionId, rejectConflictingSessions)
 // Cancel an accepted Session before it starts
-router.patch("/:sessionId/cancel", verifyJWT, validateSessionId, cancelSession)
+router.patch("/:sessionId/cancel", verifyJWT, checkAccountStatus, validateSessionId, cancelSession)
 // Confirm Session completion as its teacher or learner
-router.patch("/:sessionId/confirm-completion", verifyJWT, validateSessionId, confirmSessionCompletion)
+router.patch("/:sessionId/confirm-completion", verifyJWT, checkAccountStatus, validateSessionId, confirmSessionCompletion)
 // Report that a Session did not happen as its teacher or learner
-router.patch("/:sessionId/did-not-happen", verifyJWT, validateSessionId, reportSessionDidNotHappen)
+router.patch("/:sessionId/did-not-happen", verifyJWT, checkAccountStatus, validateSessionId, reportSessionDidNotHappen)
 // Dispute a Session as its learner
-router.patch("/:sessionId/dispute", verifyJWT, learningAccountMiddleware, validateSessionId, disputeSession)
+router.patch("/:sessionId/dispute", verifyJWT, checkAccountStatus, learningAccountMiddleware, validateSessionId, disputeSession)
 // Unsend and delete a pending Session request as its learner
-router.delete("/:sessionId/unsend", verifyJWT, learningAccountMiddleware, validateSessionId, unsendSession)
+router.delete("/:sessionId/unsend", verifyJWT, checkAccountStatus, learningAccountMiddleware, validateSessionId, unsendSession)
 // Get the logged-in participant's pending and accepted conflicts
-router.get("/:sessionId/conflicts", verifyJWT, validateSessionId, getConflictingSessions)
+router.get("/:sessionId/conflicts", verifyJWT, checkAccountStatus, validateSessionId, getConflictingSessions)
 // Get one Session as its teacher or learner
-router.get("/:sessionId", verifyJWT, validateSessionId, getSessionById)
+router.get("/:sessionId", verifyJWT, checkAccountStatus, validateSessionId, getSessionById)
 
 
 export default router

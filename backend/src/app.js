@@ -15,6 +15,7 @@ import messageRouter from "./modules/messages/message.routes.js"
 import sessionRouter from "./modules/sessions/session.routes.js"
 import adminRouter from "./modules/admin/admin.routes.js"
 import creditTransactionRouter from "./modules/creditTransactions/creditTransaction.routes.js"
+import reviewRouter from "./modules/reviews/review.routes.js"
 const app = express()
 
 app.use(cors(
@@ -39,6 +40,7 @@ app.use("/api/v1/messages", messageRouter)
 app.use("/api/v1/sessions", sessionRouter)
 app.use("/api/v1/admin", adminRouter)
 app.use("/api/v1/credit-transactions", creditTransactionRouter)
+app.use("/api/v1/reviews", reviewRouter)
 //not found middleware
 app.use(notFound)
 //errhandler
