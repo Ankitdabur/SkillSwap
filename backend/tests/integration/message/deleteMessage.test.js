@@ -5,6 +5,7 @@ import { dbconnect } from "../../../src/db/index.js"
 import Message from "../../../src/models/message.model.js"
 import { generateAccessToken } from "../../../src/utils/token.js"
 import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
+import { MESSAGE_TYPES } from "../../../src/constants/enums.js"
 import {
     createTestLearner,
     createTestTeacher,
@@ -126,6 +127,32 @@ describe("Delete Message", () => {
             receiver._id,
             "Sender's Message"
         )
+
+        const response = await deleteMessage(
+            message._id.toString(),
+            accessToken
+        )
+
+        expect(response.status).toBe(403)
+        expect(response.data.code).toBe(ERROR_CODES.FORBIDDEN)
+
+        const savedMessage = await Message.findById(message._id)
+
+        expect(savedMessage.isDeleted).toBe(false)
+    })
+
+
+    test("Admin review Message cannot be deleted", async () => {
+        const {user: sender} = await createTestLearner()
+        const {user: receiver} = await createTestTeacher()
+        const accessToken = generateAccessToken(sender._id)
+
+        const message = await Message.create({
+            sender: sender._id,
+            receiver: receiver._id,
+            content: "Admin review evidence",
+            messageType: MESSAGE_TYPES.ADMIN_REVIEW
+        })
 
         const response = await deleteMessage(
             message._id.toString(),

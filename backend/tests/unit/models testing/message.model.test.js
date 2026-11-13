@@ -353,6 +353,72 @@ describe("Message Model", () => {
     })
 
 
+    // IMAGE URL
+
+
+    test("Image URL defaults to null", () => {
+
+        const message = new Message(createMessageData())
+
+        expect(message.imageUrl).toBeNull()
+
+    })
+
+
+    test("Image-only Message passes validation", async () => {
+
+        const data = createMessageData({
+            imageUrl: "https://res.cloudinary.com/test/message.jpg"
+        })
+
+        delete data.content
+
+        const message = new Message(data)
+
+        await expect(message.validate()).resolves.toBeUndefined()
+        expect(message.content).toBeNull()
+
+    })
+
+
+    test("Message accepts content with an image", async () => {
+
+        const message = new Message(
+            createMessageData({
+                imageUrl: "https://res.cloudinary.com/test/message.jpg"
+            })
+        )
+
+        await expect(message.validate()).resolves.toBeUndefined()
+
+    })
+
+
+    test("Non-HTTPS image URL is rejected", async () => {
+
+        const message = new Message(
+            createMessageData({
+                imageUrl: "http://example.com/message.jpg"
+            })
+        )
+
+        const error = await getValidationError(message)
+
+        expect(error).toBeDefined()
+        expect(hasFieldError(error, "imageUrl")).toBe(true)
+
+    })
+
+
+    test("Image URL is immutable", () => {
+
+        const imageUrlPath = Message.schema.path("imageUrl")
+
+        expect(imageUrlPath.options.immutable).toBe(true)
+
+    })
+
+
     // IS READ
 
 

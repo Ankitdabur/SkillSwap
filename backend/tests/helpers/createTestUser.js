@@ -6,9 +6,12 @@ import Match from "../../src/models/match.model.js"
 import Notification from "../../src/models/notification.model.js"
 import Message from "../../src/models/message.model.js"
 import Session from "../../src/models/session.model.js"
+import CreditTransaction from "../../src/models/creditTransaction.model.js"
 import {
     ACCOUNT_TYPES,
     COMPLETION_METHODS,
+    CREDIT_TRANSACTION_STATUSES,
+    CREDIT_TRANSACTION_TYPES,
     TEACHING_STYLES,
     LANGUAGES,
     SKILL_CATEGORIES,
@@ -17,7 +20,8 @@ import {
     NOTIFICATION_TYPES,
     SESSION_DURATIONS,
     SESSION_STATUSES,
-    SESSION_TYPES
+    SESSION_TYPES,
+    USER_ROLES
 } from "../../src/constants/enums.js"
 
 const createTestLearner = async () => {
@@ -82,6 +86,25 @@ const createTestTeacherLearner = async (
         teachingStyles: [
             TEACHING_STYLES.STEP_BY_STEP
         ]
+    })
+
+    return {
+        user,
+        password
+    }
+}
+
+const createTestAdmin = async () => {
+    const password = "Password@123"
+
+    const user = await User.create({
+        fullname: "Test Admin",
+        username: "testadmin",
+        email: "testadmin@gmail.com",
+        password,
+        role: USER_ROLES.ADMIN,
+        accountType: ACCOUNT_TYPES.LEARNER,
+        languages: [LANGUAGES.ENGLISH]
     })
 
     return {
@@ -222,14 +245,35 @@ const createTestSession = async (
     return session
 }
 
+const createTestCreditTransaction = async (
+    userId,
+    sessionId = new mongoose.Types.ObjectId(),
+    amount = -10,
+    overrides = {}
+) => {
+    const creditTransaction = await CreditTransaction.create({
+        user: userId,
+        session: sessionId,
+        amount,
+        type: CREDIT_TRANSACTION_TYPES.SESSION_PAYMENT,
+        status: CREDIT_TRANSACTION_STATUSES.PENDING,
+        description: "CreditTransaction created for integration testing",
+        ...overrides
+    })
+
+    return creditTransaction
+}
+
 export {
     createTestLearner,
     createTestTeacher,
     createTestTeacherLearner,
+    createTestAdmin,
     createTestSkill,
     createTestSkillRequest,
     createTestMatch,
     createTestNotification,
     createTestMessage,
-    createTestSession
+    createTestSession,
+    createTestCreditTransaction
 }

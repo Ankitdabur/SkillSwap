@@ -199,7 +199,7 @@ Within a backend module, use a consistent direction such as route -> controller 
 ```
 
 - Do not expose stack traces, password hashes, refresh tokens, provider secrets, or private AI prompts in API responses.
-- Use `page` + `limit` for teacher Discovery results. Use cursor-based pagination with stable creation-time and `_id` ordering for chat messages, Notification lists, and admin SkillRequest lists. Exact response structures for later modules are finalized in their relevant phase rather than forcing every endpoint to use one method.
+- Use `page` + `limit` only for teacher Discovery results. Use cursor-based pagination with stable time and `_id` ordering for chat messages, Notification lists, SkillRequest lists, Session lists, admin Session-review lists, and CreditTransaction history. Exact response structures remain specific to each endpoint rather than forcing every endpoint to use one method.
 - Paginate every potentially unbounded list, including teachers, messages, notifications, reports, transactions, sessions, and AI messages.
 
 ## Confirmed Database Architecture
@@ -234,7 +234,7 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 - `Skill.name` is the canonical/internal name. Store it in lowercase and use it for uniqueness and normalized lookup/comparison. For example, both `"JavaScript"` and `"JAVASCRIPT"` normalize to `name: "javascript"`, so different casing cannot create duplicate Skills. Because normalization occurs before storage, a normal unique index on `name` is sufficient; a case-insensitive collation is not required.
 - `Skill.displayName` is the authoritative, properly formatted name shown to users. For example, `name: "javascript"` uses `displayName: "JavaScript"`, `name: "node.js"` uses `displayName: "Node.js"`, and `name: "power bi"` uses `displayName: "Power BI"`. The frontend must display `displayName` rather than reconstructing formatting from `name`: generic capitalization cannot reliably reproduce names such as JavaScript, Node.js, Power BI, HTML, or UI/UX Design.
 - `Skill.category` is a required predefined `SKILL_CATEGORIES` enum value. The categories remain hardcoded backend enum/constants; they are not seeded into MongoDB and do not create a Category collection.
-- `Message.messageType` supports `TEXT` and `AI_SUMMARY`, defaulting to `TEXT`.
+- `Message.messageType` supports `TEXT`, `AI_SUMMARY`, and `ADMIN_REVIEW`, defaulting to `TEXT`. A Message may contain text, one HTTPS `imageUrl`, or both; at least one is required.
 - `Session.sessionType` supports `REGULAR` and `DEMO`, defaulting to `REGULAR`.
 - `RecurringSchedule.credits` stores the agreed credits per generated occurrence.
 - A Session can have multiple Reviews, but only one per reviewer. Enforce a unique compound index on `{ session, reviewer }`.
@@ -271,7 +271,7 @@ Finalize enum values and query shapes before migration, then create indexes for 
 - Session: participants plus scheduledAt; status plus scheduledAt; recurringSchedule plus scheduledAt; `{ teacher, skill, sessionType, status }` for completed regular-session counts. Do not create a Match-based Session index because Session documents do not store a Match reference.
 - CreditTransaction: `{ user, createdAt, _id }`; session; and a partial unique `{ session, user, type }` index for `SESSION_PAYMENT` rows so each participant has at most one payment row per Session while repeated administrative transactions with `session: null` remain allowed.
 - RecurringSchedule: status plus date window; teacher; learner.
-- Message: sender/receiver plus createdAt; receiver plus isRead.
+- Message: `{ conversationKey, createdAt, _id }` for stable bidirectional conversation history.
 - AIConversation: user plus updatedAt.
 - AIMessage: conversation plus createdAt.
 - Review: unique `{ session, reviewer }`; reviewedUser plus createdAt.
@@ -366,7 +366,7 @@ Relevant statuses are `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELLED`, `COMPLETIO
 
 The teacher and learner share one confirmation window beginning when the Session ends and expiring 48 hours later. Both may confirm throughout that full window. The API must enforce the deadline even if the scheduled cron check has not run yet.
 
-Only real user actions set `teacherConfirmedAt` or `learnerConfirmedAt`. Automated processing must not fabricate confirmation timestamps.
+Only real user actions set `teacherRespondedAt` or `learnerRespondedAt`. Automated processing must not fabricate response timestamps.
 
 ### Credit accounting
 
@@ -396,7 +396,9 @@ Only real user actions set `teacherConfirmedAt` or `learnerConfirmedAt`. Automat
 
 - Normal chat starts only after Match acceptance.
 - Begin with paginated REST messaging.
-- `isDeleted` provides soft deletion while retaining data needed for moderation.
+- Normal user-to-user text and image Messages may be soft-deleted through `isDeleted`; deleted content is returned as `Message is deleted` and its image URL is hidden.
+- Admin review evidence uses the existing Message system rather than a separate evidence collection or Session-linked message field. The admin may initiate an `ADMIN_REVIEW` conversation with a participant in an active `UNDER_REVIEW` Session, and that participant may reply after initiation. The admin may also resolve the Session without opening a conversation.
+- Admin-review Messages may contain text, one image, or both, cannot be deleted, and become read-only when the participant has no active `UNDER_REVIEW` Session. They are not linked to a specific Session, which is acceptable because the product has one admin and the admin Session-detail screen supplies the review context.
 - A requested AI summary is initially private and is not persisted.
 - Only an explicit share action creates a Message with `messageType = AI_SUMMARY`.
 - Shared summaries must be visibly labeled in the UI.
@@ -435,7 +437,7 @@ Use a versioned prefix such as `/api/v1`. Final endpoint names can change, but t
 | Availability | manage own shared weekly slots; read teacher availability |
 | Matches | request, accept/reject, remove, block/unblock, list |
 | Sessions | request, accept/reject, cancel, list/detail, confirmations, dispute |
-| Admin sessions | review queue, evidence workflow, final resolution |
+| Admin sessions | review queue, optional evidence chat, final resolution |
 | Credits | balance view and paginated transaction history |
 | Recurring | propose, accept/reject, cancel, list/detail |
 | Messages | conversation history, send, soft-delete, mark read, summarize/share |
@@ -464,8 +466,6 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 **Decide before the relevant later phase**
 
 - Session price proposal/negotiation API and UI.
-- CreditTransaction debit/credit audit-record shape and its exact-once unique index.
-- Admin evidence metadata location because the current schema does not define evidence fields or a separate evidence collection.
 - Recurring generation horizon and provisional insufficient-credit details.
 - AI provider, model, limits, prompt/data-retention policy, and long-chat summarization strategy.
 
@@ -575,7 +575,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 ### Phase 4 Session booking demos and cancellation
 
-**Status:** backend scope completed on 1 November 2026. Session creation, teaching/learning status lists, detail reads, conflict reads and handling, acceptance, rejection, cancellation, learner unsend, Notifications, and their model, validation, and integration tests are implemented. All current automated tests pass (61 suites and 742 tests), including 93 Session-specific tests. Frontend work remains deliberately deferred and does not block this backend completion status. Credit reservation, completion, dispute, cron, and admin-resolution work remains assigned to Phase 5.
+**Status:** backend scope completed on 1 November 2026. Session creation, teaching/learning status lists, detail reads, conflict reads and handling, acceptance, rejection, cancellation, learner unsend, Notifications, and their Phase 4 model, validation, and integration tests were implemented. At Phase 4 completion, 61 suites and 742 tests passed, including 93 Session-specific tests. Frontend work remains deliberately deferred and does not block this backend completion status. Credit reservation, completion, dispute, cron, and admin resolution were subsequently completed in Phase 5.
 
 **Goal:** implement booking without completion automation or credit transfer complexity.
 
@@ -607,6 +607,8 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 ### Phase 5 Credits completion and admin session resolution
 
+**Status:** backend scope and automated testing completed on 13 November 2026. Credit reservation and release, signed CreditTransaction audit rows, confirmation and dispute transitions, all six deadline-expiry cases, restart-safe cron processing, credit-history pagination, admin review chat, the admin `UNDER_REVIEW` queue/detail/resolution workflow, Notifications, and retry/concurrency protection are implemented. The complete automated backend suite passes: 24 unit suites with 597 tests and 43 integration suites with 236 tests, for 67 suites and 833 tests total. Frontend work remains deferred and does not block backend completion.
+
 **Goal:** make the financially sensitive session lifecycle correct and retry-safe.
 
 **Backend work**
@@ -615,8 +617,9 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 - Implement teacher/learner confirmations, learner disputes, and the six completion scenarios.
 - Implement restart-safe node-cron checks for the shared 48-hour confirmation deadline.
 - Implement atomic, exactly-once completion transfer and CreditTransaction records.
-- Implement the admin `UNDER_REVIEW` queue, evidence request/deadline behavior after its schema decision, and final complete/cancel actions.
-- Generate Notifications for completion, dispute, evidence, cancellation, and admin decisions.
+- Implement cursor-paginated credit history for the logged-in user.
+- Implement the admin `UNDER_REVIEW` queue, detailed Session view, optional evidence conversation through existing admin-review Messages, and final complete/cancel actions. No separate evidence metadata or deadline is stored.
+- Generate Notifications for completion, dispute, cancellation, credit movements, and admin decisions.
 
 **Frontend work**
 
@@ -777,19 +780,17 @@ Each phase should add tests for both allowed behavior and attempts by the wrong 
 
 Resolve these explicitly; do not hide them in implementation details.
 
-1. **Admin evidence storage:** evidence photos and individual deadlines are required, while a separate evidence collection and unapproved Session fields are excluded. Decide where approved metadata is stored before building that workflow.
-2. **Recurring insufficient credits:** the skip-and-notify rule is provisional and must be reconfirmed in Phase 7.
-3. **AI privacy and cost:** provider, data retention, input limits, rate limits, and consent for long-chat summaries must be decided before Phase 9.
+1. **Recurring insufficient credits:** the skip-and-notify rule is provisional and must be reconfirmed in Phase 7.
+2. **AI privacy and cost:** provider, data retention, input limits, rate limits, and consent for long-chat summaries must be decided before Phase 9.
 
 ## Immediate Next Steps
 
-Phase 1 through Phase 4 backend work is complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 5 credit, completion, and admin-resolution capabilities:
+Phase 1 through Phase 5 backend work and automated testing are complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 6 review, report, and moderation capabilities:
 
-1. Implement atomic regular-session credit movement from `credits` to `reservedCredits` on acceptance and restore it on cancellation; Demo Sessions continue to bypass credits.
-2. Implement teacher and learner completion confirmation plus learner dispute handling with ownership and state checks.
-3. Implement the finalized shared 48-hour completion window using restart-safe cron processing.
-4. Implement exactly-once credit transfer and CreditTransaction audit records for completed regular Sessions.
-5. Finalize the admin evidence-metadata location, then implement the `UNDER_REVIEW` queue and final admin complete/cancel decisions.
-6. Add the related Notifications and model, validation, concurrency, and integration tests.
+1. Finalize and implement the Review model with the unique `{ session, reviewer }` rule.
+2. Allow only participants of a completed regular Session to review each other once, and update `rating` and `totalReviews` atomically.
+3. Finalize and implement the Report model with server-derived identities and validated optional Session/Message references.
+4. Implement the user's Report history and the admin moderation queue, status transitions, and optional response.
+5. Add model, validation, authorization, transaction, and integration tests for all Phase 6 workflows.
 
-Do not begin Phase 6 reviews/reports, Phase 7 recurring Sessions, Socket.IO chat delivery, or AI work until their prerequisite phases and exit criteria are complete.
+Do not begin Phase 7 recurring Sessions, Socket.IO chat delivery, or AI work until their prerequisite phases and exit criteria are complete.

@@ -317,6 +317,47 @@ describe("Session Model", () => {
     })
 
 
+    // ADMIN RESPONSE
+
+
+    test("Admin response defaults to null", () => {
+
+        const session = new Session(createSessionData())
+
+        expect(session.adminResponse).toBeNull()
+
+    })
+
+
+    test("Admin response is trimmed", () => {
+
+        const session = new Session(
+            createSessionData({
+                adminResponse: "   Session evidence reviewed   "
+            })
+        )
+
+        expect(session.adminResponse).toBe("Session evidence reviewed")
+
+    })
+
+
+    test("Admin response longer than 500 characters is rejected", async () => {
+
+        const session = new Session(
+            createSessionData({
+                adminResponse: "a".repeat(501)
+            })
+        )
+
+        const error = await getValidationError(session)
+
+        expect(error).toBeDefined()
+        expect(hasFieldError(error, "adminResponse")).toBe(true)
+
+    })
+
+
     // STATUS
 
 

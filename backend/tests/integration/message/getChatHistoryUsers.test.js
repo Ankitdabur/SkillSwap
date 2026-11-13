@@ -110,7 +110,8 @@ describe("Get Chat History Users", () => {
             secondUser.fullname
         )
         expect(conversations[0].lastMessage).toEqual({
-            content: "Latest conversation message"
+            content: "Latest conversation message",
+            imageUrl: null
         })
         expect(conversations[0].unreadCount).toBe(1)
 
@@ -121,7 +122,8 @@ describe("Get Chat History Users", () => {
 
         expect(firstConversation).toBeDefined()
         expect(firstConversation.lastMessage).toEqual({
-            content: "Latest message with first user"
+            content: "Latest message with first user",
+            imageUrl: null
         })
         expect(firstConversation.unreadCount).toBe(1)
     })
@@ -146,7 +148,8 @@ describe("Get Chat History Users", () => {
         expect(
             response.data.data.conversations[0].lastMessage
         ).toEqual({
-            content: "Message is deleted"
+            content: "Message is deleted",
+            imageUrl: null
         })
     })
 

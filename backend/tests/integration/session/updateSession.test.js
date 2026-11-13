@@ -608,6 +608,251 @@ describe("Update Session", () => {
     })
 
 
+    test("Concurrent completion confirmations transfer credits only once", async () => {
+        const {skill, learner, teacher} = await createSessionUsers()
+
+        await User.findByIdAndUpdate(learner._id, {
+            credits: 100
+        })
+
+        const session = await createTestSession(
+            teacher._id,
+            learner._id,
+            skill._id
+        )
+
+        await patchSession(
+            session._id.toString(),
+            "accept",
+            generateAccessToken(teacher._id),
+            {
+                meetingLink: "https://meet.example.com/concurrent-completion"
+            }
+        )
+
+        await Session.collection.updateOne(
+            {
+                _id: session._id
+            },
+            {
+                $set: {
+                    scheduledAt: new Date(
+                        Date.now() - 2 * 60 * 60 * 1000
+                    )
+                }
+            }
+        )
+
+        await patchSession(
+            session._id.toString(),
+            "confirm-completion",
+            generateAccessToken(teacher._id)
+        )
+
+        const responses = await Promise.all([
+            patchSession(
+                session._id.toString(),
+                "confirm-completion",
+                generateAccessToken(learner._id)
+            ),
+            patchSession(
+                session._id.toString(),
+                "confirm-completion",
+                generateAccessToken(learner._id)
+            )
+        ])
+
+        expect(
+            responses.map((response) => response.status).sort()
+        ).toEqual([200, 409])
+
+        const updatedLearner = await User.findById(learner._id)
+        const updatedTeacher = await User.findById(teacher._id)
+        const creditTransactions = await CreditTransaction.find({
+            session: session._id
+        })
+        const creditNotifications = await Notification.countDocuments({
+            type: NOTIFICATION_TYPES.SESSION_CREDITS_CREDITED,
+            recipient: teacher._id
+        })
+
+        expect(updatedLearner.credits).toBe(90)
+        expect(updatedLearner.reservedCredits).toBe(0)
+        expect(updatedTeacher.credits).toBe(10)
+        expect(
+            creditTransactions.map((transaction) => transaction.status)
+        ).toEqual([
+            CREDIT_TRANSACTION_STATUSES.COMPLETED,
+            CREDIT_TRANSACTION_STATUSES.COMPLETED
+        ])
+        expect(creditNotifications).toBe(1)
+    })
+
+
+    test("Teacher and learner can report that a Session did not happen", async () => {
+        const {skill, learner, teacher} = await createSessionUsers()
+
+        await User.findByIdAndUpdate(learner._id, {
+            credits: 100
+        })
+
+        const session = await createTestSession(
+            teacher._id,
+            learner._id,
+            skill._id
+        )
+
+        await patchSession(
+            session._id.toString(),
+            "accept",
+            generateAccessToken(teacher._id),
+            {
+                meetingLink: "https://meet.example.com/not-happened-session"
+            }
+        )
+
+        await Session.collection.updateOne(
+            {
+                _id: session._id
+            },
+            {
+                $set: {
+                    scheduledAt: new Date(
+                        Date.now() - 2 * 60 * 60 * 1000
+                    )
+                }
+            }
+        )
+
+        const teacherResponse = await patchSession(
+            session._id.toString(),
+            "did-not-happen",
+            generateAccessToken(teacher._id)
+        )
+
+        expect(teacherResponse.status).toBe(200)
+        expect(teacherResponse.data.data.session.status).toBe(
+            SESSION_STATUSES.COMPLETION_PENDING
+        )
+
+        const learnerResponse = await patchSession(
+            session._id.toString(),
+            "did-not-happen",
+            generateAccessToken(learner._id)
+        )
+
+        expect(learnerResponse.status).toBe(200)
+        expect(learnerResponse.data.data.session.status).toBe(
+            SESSION_STATUSES.CANCELLED
+        )
+        expect(
+            learnerResponse.data.data.session.teacherCompletionResponse
+        ).toBe(SESSION_COMPLETION_RESPONSES.DID_NOT_HAPPEN)
+        expect(
+            learnerResponse.data.data.session.learnerCompletionResponse
+        ).toBe(SESSION_COMPLETION_RESPONSES.DID_NOT_HAPPEN)
+
+        const updatedLearner = await User.findById(learner._id)
+        const creditTransactions = await CreditTransaction.find({
+            session: session._id
+        })
+        const refundNotification = await Notification.findOne({
+            recipient: learner._id,
+            type: NOTIFICATION_TYPES.SESSION_CREDITS_REFUNDED
+        })
+
+        expect(updatedLearner.credits).toBe(100)
+        expect(updatedLearner.reservedCredits).toBe(0)
+        expect(
+            creditTransactions.map((transaction) => transaction.status)
+        ).toEqual([
+            CREDIT_TRANSACTION_STATUSES.CANCELLED,
+            CREDIT_TRANSACTION_STATUSES.CANCELLED
+        ])
+        expect(refundNotification.message).toBe(
+            "+10 credits were returned because the Session was cancelled"
+        )
+    })
+
+
+    test("Learner can dispute a Session and keep credits reserved", async () => {
+        const {skill, learner, teacher} = await createSessionUsers()
+
+        await User.findByIdAndUpdate(learner._id, {
+            credits: 100
+        })
+
+        const session = await createTestSession(
+            teacher._id,
+            learner._id,
+            skill._id
+        )
+
+        await patchSession(
+            session._id.toString(),
+            "accept",
+            generateAccessToken(teacher._id),
+            {
+                meetingLink: "https://meet.example.com/disputed-session"
+            }
+        )
+
+        await Session.collection.updateOne(
+            {
+                _id: session._id
+            },
+            {
+                $set: {
+                    scheduledAt: new Date(
+                        Date.now() - 2 * 60 * 60 * 1000
+                    )
+                }
+            }
+        )
+
+        await patchSession(
+            session._id.toString(),
+            "confirm-completion",
+            generateAccessToken(teacher._id)
+        )
+
+        const response = await patchSession(
+            session._id.toString(),
+            "dispute",
+            generateAccessToken(learner._id)
+        )
+
+        expect(response.status).toBe(200)
+        expect(response.data.data.session.status).toBe(
+            SESSION_STATUSES.UNDER_REVIEW
+        )
+        expect(
+            response.data.data.session.learnerCompletionResponse
+        ).toBe(SESSION_COMPLETION_RESPONSES.DISPUTE)
+
+        const updatedLearner = await User.findById(learner._id)
+        const creditTransactions = await CreditTransaction.find({
+            session: session._id
+        })
+        const notification = await Notification.findOne({
+            recipient: teacher._id,
+            type: NOTIFICATION_TYPES.SESSION_UNDER_REVIEW
+        })
+
+        expect(updatedLearner.credits).toBe(90)
+        expect(updatedLearner.reservedCredits).toBe(10)
+        expect(
+            creditTransactions.map((transaction) => transaction.status)
+        ).toEqual([
+            CREDIT_TRANSACTION_STATUSES.PENDING,
+            CREDIT_TRANSACTION_STATUSES.PENDING
+        ])
+        expect(notification.message).toBe(
+            `${learner.username} disputed the Session. The Session is now under review`
+        )
+    })
+
+
     test("Conflicting completion responses move Session under review", async () => {
         const {skill, learner, teacher} = await createSessionUsers()
 

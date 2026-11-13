@@ -16,7 +16,8 @@ const cleanupTestUsers = async () => {
                     $in: [
                         "testlearner",
                         "testteacher",
-                        "testteacherlearner"
+                        "testteacherlearner",
+                        "testadmin"
                     ]
                 }
             },
@@ -25,7 +26,8 @@ const cleanupTestUsers = async () => {
                     $in: [
                         "testlearner@gmail.com",
                         "testteacher@gmail.com",
-                        "testteacherlearner@gmail.com"
+                        "testteacherlearner@gmail.com",
+                        "testadmin@gmail.com"
                     ]
                 }
             }

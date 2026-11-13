@@ -73,6 +73,55 @@ describe("Message Validation", () => {
     })
 
 
+    test("Send Message validation accepts an image without content", () => {
+
+        const req = {
+            user: {
+                _id: loggedInUserId
+            },
+            body: {
+                receiverId: otherUserId
+            },
+            file: {
+                path: "/tmp/test-message.jpg"
+            }
+        }
+
+        const next = jest.fn()
+
+        validateSendMessage(req, {}, next)
+
+        expect(req.body.content).toBeNull()
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Send Message validation accepts content with an image", () => {
+
+        const req = {
+            user: {
+                _id: loggedInUserId
+            },
+            body: {
+                receiverId: otherUserId,
+                content: "   Message caption   "
+            },
+            file: {
+                path: "/tmp/test-message.jpg"
+            }
+        }
+
+        const next = jest.fn()
+
+        validateSendMessage(req, {}, next)
+
+        expect(req.body.content).toBe("Message caption")
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
     test("Send Message validation rejects unknown field", () => {
 
         const req = {

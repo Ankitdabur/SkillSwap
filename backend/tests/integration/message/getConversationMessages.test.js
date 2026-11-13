@@ -2,6 +2,7 @@ import axios from "axios"
 import mongoose from "mongoose"
 import app from "../../../src/app.js"
 import { dbconnect } from "../../../src/db/index.js"
+import Message from "../../../src/models/message.model.js"
 import { generateAccessToken } from "../../../src/utils/token.js"
 import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
 import {
@@ -255,18 +256,18 @@ describe("Get Conversation Messages", () => {
     })
 
 
-    test("Deleted Message content is hidden in conversation history", async () => {
+    test("Deleted Message content and image are hidden in conversation history", async () => {
         const {user: loggedInUser} = await createTestLearner()
         const {user: otherUser} = await createTestTeacher()
         const accessToken = generateAccessToken(loggedInUser._id)
 
-        await createTestMessage(
-            otherUser._id,
-            loggedInUser._id,
-            "Original deleted content",
-            false,
-            true
-        )
+        await Message.create({
+            sender: otherUser._id,
+            receiver: loggedInUser._id,
+            content: "Original deleted content",
+            imageUrl: "https://res.cloudinary.com/test/message.jpg",
+            isDeleted: true
+        })
 
         const response = await getConversationMessages(
             otherUser._id.toString(),
@@ -277,6 +278,7 @@ describe("Get Conversation Messages", () => {
         expect(response.data.data.messages[0].content).toBe(
             "Message is deleted"
         )
+        expect(response.data.data.messages[0].imageUrl).toBeNull()
     })
 
 
