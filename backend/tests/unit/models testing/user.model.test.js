@@ -5,6 +5,7 @@ import User from "../../../src/models/user.model.js"
 import {
     USER_ROLES,
     ACCOUNT_TYPES,
+    ACCOUNT_STATUSES,
     TEACHING_STYLES,
     LANGUAGES
 } from "../../../src/constants/enums.js"
@@ -365,6 +366,97 @@ describe("User Model", () => {
 
     })
 
+
+    // ACCOUNT STATUS
+
+
+    test("Account status defaults to ACTIVE", () => {
+
+        const user = new User(
+            createLearnerData()
+        )
+
+        expect(user.accountStatus).toBe(ACCOUNT_STATUSES.ACTIVE)
+
+    })
+
+
+    test("Suspended account requires a future suspension date", async () => {
+
+        const user = new User(
+            createLearnerData({
+                accountStatus: ACCOUNT_STATUSES.SUSPENDED,
+                suspendedUntil: new Date(Date.now() + 24 * 60 * 60 * 1000)
+            })
+        )
+
+        await expect(user.validate()).resolves.toBeUndefined()
+
+    })
+
+
+    test("Suspended account without suspension date is rejected", async () => {
+
+        const user = new User(
+            createLearnerData({
+                accountStatus: ACCOUNT_STATUSES.SUSPENDED
+            })
+        )
+
+        const error = await getValidationError(user)
+
+        expect(error).toBeDefined()
+        expect(hasFieldError(error, "suspendedUntil")).toBe(true)
+
+    })
+
+
+    test("Active account with suspension date is rejected", async () => {
+
+        const user = new User(
+            createLearnerData({
+                suspendedUntil: new Date(Date.now() + 24 * 60 * 60 * 1000)
+            })
+        )
+
+        const error = await getValidationError(user)
+
+        expect(error).toBeDefined()
+        expect(hasFieldError(error, "suspendedUntil")).toBe(true)
+
+    })
+
+
+    test("Banned account accepts null suspension date", async () => {
+
+        const user = new User(
+            createLearnerData({
+                accountStatus: ACCOUNT_STATUSES.BANNED
+            })
+        )
+
+        await expect(user.validate()).resolves.toBeUndefined()
+
+        expect(user.suspendedUntil).toBeNull()
+
+    })
+
+
+    test("Invalid account status is rejected", async () => {
+
+        const user = new User(
+            createLearnerData({
+                accountStatus: "DEACTIVATED"
+            })
+        )
+
+        const error = await getValidationError(user)
+
+        expect(error).toBeDefined()
+        expect(hasFieldError(error, "accountStatus")).toBe(true)
+
+    })
+
     // ACCOUNT TYPE
 
 
@@ -719,6 +811,36 @@ describe("User Model", () => {
 
         expect(error).toBeDefined()
         expect(hasFieldError(error, "totalReviews")).toBe(true)
+
+    })
+
+
+    // TOTAL REPORTS
+
+
+    test("Total reports defaults to 0", () => {
+
+        const user = new User(
+            createLearnerData()
+        )
+
+        expect(user.totalReports).toBe(0)
+
+    })
+
+
+    test("Negative total reports are rejected", async () => {
+
+        const user = new User(
+            createLearnerData({
+                totalReports: -1
+            })
+        )
+
+        const error = await getValidationError(user)
+
+        expect(error).toBeDefined()
+        expect(hasFieldError(error, "totalReports")).toBe(true)
 
     })
 

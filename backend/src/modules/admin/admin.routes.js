@@ -5,12 +5,24 @@ import { adminRoleMiddleware } from "../../middlewares/role.middleware.js"
 import { validateSessionId } from "../sessions/session.validation.js"
 import {
     validateGetUnderReviewSessions,
-    validateResolveSessionReview
+    validateResolveSessionReview,
+    validateSuspendUser,
+    validateAccountStatusAction,
+    validateGetReportsByStatus,
+    validateReportId,
+    validateReportDecision
 } from "./admin.validation.js"
 import {
     getUnderReviewSessions,
     getUnderReviewSessionById,
-    resolveSessionReview
+    resolveSessionReview,
+    suspendUser,
+    banUser,
+    reactivateUser,
+    getReportsByStatus,
+    getReportById,
+    resolveReport,
+    dismissReport
 } from "./admin.controller.js"
 
 
@@ -25,6 +37,20 @@ router.get("/sessions/under-review" , validateGetUnderReviewSessions , getUnderR
 router.get("/sessions/under-review/:sessionId", validateSessionId, getUnderReviewSessionById)
 // Resolve an under-review Session as completed or cancelled
 router.patch("/sessions/under-review/:sessionId/resolve", validateSessionId, validateResolveSessionReview, resolveSessionReview)
+// Suspend an active user account
+router.patch("/users/:userId/suspend", validateSuspendUser, suspendUser)
+// Permanently ban an active or suspended user account
+router.patch("/users/:userId/ban", validateAccountStatusAction, banUser)
+// Reactivate a suspended user account early
+router.patch("/users/:userId/reactivate", validateAccountStatusAction, reactivateUser)
+// Get Reports by status with cursor pagination
+router.get("/reports/status/:status", validateGetReportsByStatus, getReportsByStatus)
+// Get one Report with user and referenced evidence details
+router.get("/reports/:reportId", validateReportId, getReportById)
+// Resolve a pending Report without applying an account action
+router.patch("/reports/:reportId/resolve", validateReportId, validateReportDecision, resolveReport)
+// Dismiss a pending Report without applying an account action
+router.patch("/reports/:reportId/dismiss", validateReportId, validateReportDecision, dismissReport)
 
 
 export default router

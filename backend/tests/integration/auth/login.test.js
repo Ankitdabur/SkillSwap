@@ -5,6 +5,8 @@ import { cleanupTestUsers } from "../../helpers/cleanupTestData.js";
 import { createTestLearner } from "../../helpers/createTestUser.js";
 import { dbconnect } from "../../../src/db/index.js";
 import app from "../../../src/app.js";
+import { ACCOUNT_STATUSES } from "../../../src/constants/enums.js";
+import { ERROR_CODES } from "../../../src/constants/errorCodes.js";
 
 
 const PORT = process.env.PORT || 3000;
@@ -278,6 +280,100 @@ describe("POST /api/v1/auth/login", () => {
       expect(
         error.response.status
       ).toBe(401);
+
+    }
+
+  });
+
+
+
+  test("should reject login for suspended account", async () => {
+
+    expect.assertions(2);
+
+
+    const {
+      user,
+      password
+    } = await createTestLearner();
+
+
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+        accountStatus: ACCOUNT_STATUSES.SUSPENDED,
+        suspendedUntil: new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        )
+      },
+      {
+        runValidators: true
+      }
+    );
+
+
+    try {
+
+      await axios.post(
+        LOGIN_URL,
+        {
+          identifier: user.username,
+          password
+        }
+      );
+
+    } catch (error) {
+
+      expect(error.response.status).toBe(403);
+      expect(error.response.data.code).toBe(
+        ERROR_CODES.ACCOUNT_SUSPENDED
+      );
+
+    }
+
+  });
+
+
+
+  test("should reject login for banned account", async () => {
+
+    expect.assertions(2);
+
+
+    const {
+      user,
+      password
+    } = await createTestLearner();
+
+
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+        accountStatus: ACCOUNT_STATUSES.BANNED,
+        suspendedUntil: null
+      },
+      {
+        runValidators: true
+      }
+    );
+
+
+    try {
+
+      await axios.post(
+        LOGIN_URL,
+        {
+          identifier: user.username,
+          password
+        }
+      );
+
+    } catch (error) {
+
+      expect(error.response.status).toBe(403);
+      expect(error.response.data.code).toBe(
+        ERROR_CODES.ACCOUNT_BANNED
+      );
 
     }
 

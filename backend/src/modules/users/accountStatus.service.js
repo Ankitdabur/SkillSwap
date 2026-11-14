@@ -115,4 +115,7 @@ const checkUserAccountStatus = async (user) => {
 }
 
 
-export {checkUserAccountStatus}
+export {
+    checkUserAccountStatus,
+    formatSuspensionExpiry
+}

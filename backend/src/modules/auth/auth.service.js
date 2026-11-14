@@ -278,13 +278,25 @@ const refreshUserService = async (incomingRefreshToken) => {
   const user = await User.findById(decodedToken?._id)
   .select("+refreshTokenHash");
 
-  if (!user || !user.refreshTokenHash) {
-    throw new ApiError(
-      401,
-      "Invalid refresh token",
-      ERROR_CODES.INVALID_REFRESH_TOKEN,
-    );
+  if (!user) {
+      throw new ApiError(
+          401,
+          "Invalid refresh token",
+          ERROR_CODES.INVALID_REFRESH_TOKEN
+      )
   }
+
+  const activeUser = await checkUserAccountStatus(user)
+
+  if (!user.refreshTokenHash) {
+      throw new ApiError(
+          401,
+          "Invalid refresh token",
+          ERROR_CODES.INVALID_REFRESH_TOKEN
+      )
+  }
+
+  
 
   const isRefreshTokenValid = await compareRefreshToken(incomingRefreshToken , user.refreshTokenHash)
 
@@ -296,7 +308,6 @@ const refreshUserService = async (incomingRefreshToken) => {
     );
   }
 
-  const activeUser = await checkUserAccountStatus(user);
 
   const accessToken = generateAccessToken(activeUser._id);
 

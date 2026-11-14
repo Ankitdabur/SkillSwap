@@ -1,10 +1,18 @@
 import { jest } from "@jest/globals"
 import {
     validateGetUnderReviewSessions,
-    validateResolveSessionReview
+    validateResolveSessionReview,
+    validateSuspendUser,
+    validateAccountStatusAction,
+    validateGetReportsByStatus,
+    validateReportId,
+    validateReportDecision
 } from "../../../src/modules/admin/admin.validation.js"
 import { ERROR_CODES } from "../../../src/constants/errorCodes.js"
-import { SESSION_STATUSES } from "../../../src/constants/enums.js"
+import {
+    REPORT_STATUSES,
+    SESSION_STATUSES
+} from "../../../src/constants/enums.js"
 
 
 describe("Admin Validation", () => {
@@ -371,6 +379,246 @@ describe("Admin Validation", () => {
                 expect.objectContaining({
                     field: "status",
                     code: ERROR_CODES.INVALID_REQUEST
+                })
+            ])
+        )
+        expect(next).not.toHaveBeenCalled()
+
+    })
+
+
+    // ACCOUNT STATUS ACTIONS
+
+
+    test("Suspend user validation accepts positive whole days", () => {
+
+        const req = {
+            params: {userId: sessionId},
+            body: {days: 7}
+        }
+        const next = jest.fn()
+
+        validateSuspendUser(req, {}, next)
+
+        expect(req.accountSuspensionData).toEqual({days: 7})
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Suspend user validation rejects invalid user ID and days", () => {
+
+        const req = {
+            params: {userId: "invalid-user-id"},
+            body: {days: 0}
+        }
+        const next = jest.fn()
+
+        const error = getValidationError(
+            validateSuspendUser,
+            req,
+            next
+        )
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "userId",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                }),
+                expect.objectContaining({
+                    field: "days",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+        expect(next).not.toHaveBeenCalled()
+
+    })
+
+
+    test("Account status action validation accepts user ID with empty body", () => {
+
+        const req = {
+            params: {userId: sessionId},
+            body: {}
+        }
+        const next = jest.fn()
+
+        validateAccountStatusAction(req, {}, next)
+
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Account status action validation rejects request body fields", () => {
+
+        const req = {
+            params: {userId: sessionId},
+            body: {status: "BANNED"}
+        }
+        const next = jest.fn()
+
+        const error = getValidationError(
+            validateAccountStatusAction,
+            req,
+            next
+        )
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "status",
+                    code: ERROR_CODES.INVALID_REQUEST
+                })
+            ])
+        )
+        expect(next).not.toHaveBeenCalled()
+
+    })
+
+
+    // ADMIN REPORTS
+
+
+    test("Get Reports by status validation normalizes status and pagination", () => {
+
+        const req = {
+            params: {status: "pending"},
+            query: {
+                cursor: sessionId,
+                limit: "20"
+            }
+        }
+        const next = jest.fn()
+
+        validateGetReportsByStatus(req, {}, next)
+
+        expect(req.adminReportQuery).toEqual({
+            status: REPORT_STATUSES.PENDING,
+            cursor: sessionId,
+            limit: 20
+        })
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Get Reports by status validation rejects invalid status", () => {
+
+        const req = {
+            params: {status: "closed"},
+            query: {}
+        }
+        const next = jest.fn()
+
+        const error = getValidationError(
+            validateGetReportsByStatus,
+            req,
+            next
+        )
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "status",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
+                })
+            ])
+        )
+        expect(next).not.toHaveBeenCalled()
+
+    })
+
+
+    test("Report ID validation accepts valid Report ID", () => {
+
+        const req = {
+            params: {reportId: sessionId}
+        }
+        const next = jest.fn()
+
+        validateReportId(req, {}, next)
+
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Report ID validation rejects invalid Report ID", () => {
+
+        const req = {
+            params: {reportId: "invalid-report-id"}
+        }
+        const next = jest.fn()
+
+        const error = getValidationError(
+            validateReportId,
+            req,
+            next
+        )
+
+        expect(error.code).toBe(ERROR_CODES.INVALID_FIELD_VALUE)
+        expect(next).not.toHaveBeenCalled()
+
+    })
+
+
+    test("Report decision validation accepts and trims optional response", () => {
+
+        const req = {
+            body: {
+                adminResponse: "   Evidence reviewed   "
+            }
+        }
+        const next = jest.fn()
+
+        validateReportDecision(req, {}, next)
+
+        expect(req.reportDecisionData).toEqual({
+            adminResponse: "Evidence reviewed"
+        })
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Report decision validation accepts missing response as null", () => {
+
+        const req = {body: {}}
+        const next = jest.fn()
+
+        validateReportDecision(req, {}, next)
+
+        expect(req.reportDecisionData).toEqual({
+            adminResponse: null
+        })
+        expect(next).toHaveBeenCalledTimes(1)
+
+    })
+
+
+    test("Report decision validation rejects empty response", () => {
+
+        const req = {
+            body: {
+                adminResponse: "   "
+            }
+        }
+        const next = jest.fn()
+
+        const error = getValidationError(
+            validateReportDecision,
+            req,
+            next
+        )
+
+        expect(error.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    field: "adminResponse",
+                    code: ERROR_CODES.INVALID_FIELD_VALUE
                 })
             ])
         )

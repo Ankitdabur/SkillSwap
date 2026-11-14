@@ -1,6 +1,9 @@
 import ApiError from "../../utils/ApiError.js"
 import { ERROR_CODES } from "../../constants/errorCodes.js"
-import { SESSION_STATUSES } from "../../constants/enums.js"
+import {
+    REPORT_STATUSES,
+    SESSION_STATUSES
+} from "../../constants/enums.js"
 
 
 const ALLOWED_GET_UNDER_REVIEW_QUERY_FIELDS = [
@@ -13,8 +16,23 @@ const ALLOWED_RESOLVE_SESSION_REVIEW_FIELDS = [
     "adminResponse"
 ]
 
+const ALLOWED_SUSPEND_USER_FIELDS = [
+    "days"
+]
+
+const ALLOWED_GET_REPORTS_QUERY_FIELDS = [
+    "cursor",
+    "limit"
+]
+
+const ALLOWED_RESOLVE_REPORT_FIELDS = [
+    "adminResponse"
+]
+
 const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/
 const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/
+
+
 
 
 const validateGetUnderReviewSessions = (req, _res, next) => {
@@ -178,7 +196,308 @@ const validateResolveSessionReview = (req, _res, next) => {
 }
 
 
+const validateSuspendUser = (req, _res, next) => {
+
+    const errors = []
+    const body = req.body || {}
+
+    const addError = (field, message, code) => {
+        errors.push({
+            field,
+            message,
+            code
+        })
+    }
+
+    const {userId} = req.params
+
+    if(
+        !userId ||
+        typeof userId !== "string" ||
+        !OBJECT_ID_REGEX.test(userId)
+    ){
+        addError(
+            "userId",
+            "Invalid user ID",
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
+    }
+
+    const unknownFields = Object.keys(body).filter(
+        (field) => !ALLOWED_SUSPEND_USER_FIELDS.includes(field)
+    )
+
+    unknownFields.forEach((field) => {
+        addError(
+            field,
+            `Unknown account suspension field: ${field}`,
+            ERROR_CODES.INVALID_REQUEST
+        )
+    })
+
+    const {days} = body
+
+    if(
+        days === undefined ||
+        days === null ||
+        days === ""
+    ){
+        addError(
+            "days",
+            "Suspension days are required",
+            ERROR_CODES.MISSING_REQUIRED_FIELDS
+        )
+    }else if(
+        typeof days !== "number" ||
+        !Number.isInteger(days) ||
+        days <= 0
+    ){
+        addError(
+            "days",
+            "Suspension days must be a positive integer",
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
+    }
+
+    if(errors.length > 0){
+        throw new ApiError(
+            400,
+            "Account suspension validation failed",
+            ERROR_CODES.INVALID_REQUEST,
+            errors
+        )
+    }
+
+    req.accountSuspensionData = {days}
+
+    next()
+}
+
+
+const validateAccountStatusAction = (req, _res, next) => {
+
+    const errors = []
+    const body = req.body || {}
+
+    const addError = (field, message, code) => {
+        errors.push({
+            field,
+            message,
+            code
+        })
+    }
+
+    const {userId} = req.params
+
+    if(
+        !userId ||
+        typeof userId !== "string" ||
+        !OBJECT_ID_REGEX.test(userId)
+    ){
+        addError(
+            "userId",
+            "Invalid user ID",
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
+    }
+
+    Object.keys(body).forEach((field) => {
+        addError(
+            field,
+            `Unknown account status field: ${field}`,
+            ERROR_CODES.INVALID_REQUEST
+        )
+    })
+
+    if(errors.length > 0){
+        throw new ApiError(
+            400,
+            "Account status validation failed",
+            ERROR_CODES.INVALID_REQUEST,
+            errors
+        )
+    }
+
+    next()
+}
+
+
+const validateGetReportsByStatus = (req, _res, next) => {
+
+    const errors = []
+    const query = req.query || {}
+
+    const addError = (field, message, code) => {
+        errors.push({
+            field,
+            message,
+            code
+        })
+    }
+
+    const {status} = req.params
+    const normalizedStatus = typeof status === "string"
+        ? status.toUpperCase()
+        : null
+
+    if(!Object.values(REPORT_STATUSES).includes(normalizedStatus)){
+        addError(
+            "status",
+            "Report status must be pending, resolved, or dismissed",
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
+    }
+
+    const unknownFields = Object.keys(query).filter(
+        (field) => !ALLOWED_GET_REPORTS_QUERY_FIELDS.includes(field)
+    )
+
+    unknownFields.forEach((field) => {
+        addError(
+            field,
+            `Unknown admin Report query field: ${field}`,
+            ERROR_CODES.INVALID_REQUEST
+        )
+    })
+
+    const {
+        cursor,
+        limit = "10"
+    } = query
+
+    if(
+        cursor !== undefined &&
+        (
+            typeof cursor !== "string" ||
+            !OBJECT_ID_REGEX.test(cursor)
+        )
+    ){
+        addError(
+            "cursor",
+            "Cursor must be a valid Report ID",
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
+    }
+
+    if(
+        typeof limit !== "string" ||
+        !POSITIVE_INTEGER_PATTERN.test(limit) ||
+        Number(limit) > 100
+    ){
+        addError(
+            "limit",
+            "Limit must be a positive integer between 1 and 100",
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
+    }
+
+    if(errors.length > 0){
+        throw new ApiError(
+            400,
+            "Admin Report query validation failed",
+            ERROR_CODES.INVALID_REQUEST,
+            errors
+        )
+    }
+
+    req.adminReportQuery = {
+        status: normalizedStatus,
+        cursor: cursor || null,
+        limit: Number(limit)
+    }
+
+    next()
+}
+
+
+const validateReportId = (req, _res, next) => {
+
+    const {reportId} = req.params
+
+    if(
+        !reportId ||
+        typeof reportId !== "string" ||
+        !OBJECT_ID_REGEX.test(reportId)
+    ){
+        throw new ApiError(
+            400,
+            "Invalid Report ID",
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
+    }
+
+    next()
+}
+
+
+const validateReportDecision = (req, _res, next) => {
+
+    const errors = []
+    const body = req.body || {}
+
+    const addError = (field, message, code) => {
+        errors.push({
+            field,
+            message,
+            code
+        })
+    }
+
+    const unknownFields = Object.keys(body).filter(
+        (field) => !ALLOWED_RESOLVE_REPORT_FIELDS.includes(field)
+    )
+
+    unknownFields.forEach((field) => {
+        addError(
+            field,
+            `Unknown Report decision field: ${field}`,
+            ERROR_CODES.INVALID_REQUEST
+        )
+    })
+
+    const {adminResponse} = body
+
+    if(
+        adminResponse !== undefined &&
+        adminResponse !== null &&
+        (
+            typeof adminResponse !== "string" ||
+            adminResponse.trim() === "" ||
+            adminResponse.trim().length > 500
+        )
+    ){
+        addError(
+            "adminResponse",
+            "Admin response must be a non-empty string of at most 500 characters",
+            ERROR_CODES.INVALID_FIELD_VALUE
+        )
+    }
+
+    if(errors.length > 0){
+        throw new ApiError(
+            400,
+            "Report decision validation failed",
+            ERROR_CODES.INVALID_REQUEST,
+            errors
+        )
+    }
+
+    req.reportDecisionData = {
+        adminResponse: adminResponse === undefined || adminResponse === null
+            ? null
+            : adminResponse.trim()
+    }
+
+    next()
+}
+
+
 export {
     validateGetUnderReviewSessions,
-    validateResolveSessionReview
+    validateResolveSessionReview,
+    validateSuspendUser,
+    validateAccountStatusAction,
+    validateGetReportsByStatus,
+    validateReportId,
+    validateReportDecision
 }

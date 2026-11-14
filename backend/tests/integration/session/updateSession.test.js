@@ -93,6 +93,11 @@ const createSessionUsers = async () => {
 
 beforeAll(async () => {
     await dbconnect()
+    await cleanupTestCreditTransactions()
+    await cleanupTestSessions()
+    await cleanupTestNotifications()
+    await cleanupTestSkills()
+    await cleanupTestUsers()
     server = app.listen(PORT)
 })
 

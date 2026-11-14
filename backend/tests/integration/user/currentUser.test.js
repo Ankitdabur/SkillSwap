@@ -1,11 +1,14 @@
 import axios from "axios";
 import mongoose from "mongoose";
+import User from "../../../src/models/user.model.js";
 import app from "../../../src/app.js";
 import { dbconnect } from "../../../src/db/index.js";
 import { generateAccessToken } from "../../../src/utils/token.js";
 import { createTestLearner } from "../../helpers/createTestUser.js";
 import { authHeader } from "../../helpers/authHeader.js";
 import { cleanupTestUsers } from "../../helpers/cleanupTestData.js";
+import { ACCOUNT_STATUSES } from "../../../src/constants/enums.js";
+import { ERROR_CODES } from "../../../src/constants/errorCodes.js";
 
 const PORT = process.env.PORT || 8000;
 const CURRENT_USER_URL = `http://localhost:${PORT}/api/v1/user/me`;
@@ -77,6 +80,54 @@ describe("Current User", () => {
         const response = await currentUserRequest("invalid-access-token");
 
         expect(response.status).toBe(401);
+    });
+
+    test("Suspended user cannot access protected route", async () => {
+        const { user } = await createTestLearner();
+        const accessToken = generateAccessToken(user._id);
+
+        await User.findByIdAndUpdate(
+            user._id,
+            {
+                accountStatus: ACCOUNT_STATUSES.SUSPENDED,
+                suspendedUntil: new Date(
+                    Date.now() + 24 * 60 * 60 * 1000
+                )
+            },
+            {
+                runValidators: true
+            }
+        );
+
+        const response = await currentUserRequest(accessToken);
+
+        expect(response.status).toBe(403);
+        expect(response.data.code).toBe(
+            ERROR_CODES.ACCOUNT_SUSPENDED
+        );
+    });
+
+    test("Banned user cannot access protected route", async () => {
+        const { user } = await createTestLearner();
+        const accessToken = generateAccessToken(user._id);
+
+        await User.findByIdAndUpdate(
+            user._id,
+            {
+                accountStatus: ACCOUNT_STATUSES.BANNED,
+                suspendedUntil: null
+            },
+            {
+                runValidators: true
+            }
+        );
+
+        const response = await currentUserRequest(accessToken);
+
+        expect(response.status).toBe(403);
+        expect(response.data.code).toBe(
+            ERROR_CODES.ACCOUNT_BANNED
+        );
     });
 
 });
