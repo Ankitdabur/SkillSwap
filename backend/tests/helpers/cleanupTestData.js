@@ -8,6 +8,7 @@ import Message from "../../src/models/message.model.js"
 import Session from "../../src/models/session.model.js"
 import CreditTransaction from "../../src/models/creditTransaction.model.js"
 import Review from "../../src/models/review.model.js"
+import Report from "../../src/models/report.model.js"
 
 const cleanupTestUsers = async () => {
     await User.deleteMany({
@@ -359,6 +360,60 @@ const cleanupTestReviews = async () => {
     })
 }
 
+const cleanupTestReports = async () => {
+    const testUsers = await User.find({
+        $or: [
+            {
+                username: {
+                    $in: [
+                        "testlearner",
+                        "testteacher",
+                        "testteacherlearner"
+                    ]
+                }
+            },
+            {
+                email: {
+                    $in: [
+                        "testlearner@gmail.com",
+                        "testteacher@gmail.com",
+                        "testteacherlearner@gmail.com"
+                    ]
+                }
+            }
+        ]
+    }).select("_id")
+
+    const testUserIds = testUsers.map((user) => user._id)
+
+    await Report.deleteMany({
+        $or: [
+            {
+                reportedBy: {
+                    $in: testUserIds
+                }
+            },
+            {
+                reportedUser: {
+                    $in: testUserIds
+                }
+            },
+            {
+                reason: {
+                    $in: [
+                        "Report created for integration testing",
+                        "Integration test Session report",
+                        "Integration test Message report",
+                        "Integration test duplicate report",
+                        "Integration test first pending Report",
+                        "Integration test second pending Report"
+                    ]
+                }
+            }
+        ]
+    })
+}
+
 export {
     cleanupTestUsers,
     cleanupTestAvailability,
@@ -369,7 +424,8 @@ export {
     cleanupTestMessages,
     cleanupTestSessions,
     cleanupTestCreditTransactions,
-    cleanupTestReviews
+    cleanupTestReviews,
+    cleanupTestReports
 }
 
 

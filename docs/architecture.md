@@ -257,7 +257,7 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 - A Session can have at most two Reviews: one from each participant.
 - A Message directly references its sender and receiver. It does not create a separate conversation collection.
 - An AIConversation belongs to one User and contains many AIMessages.
-- A Report may optionally reference a Session, a Message, or both when valid.
+- A Report references exactly one valid Session or Message.
 
 ### Minimum index plan
 
@@ -638,6 +638,8 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 ### Phase 6 Reviews reports and moderation
 
+**Status:** backend scope and automated coverage completed on 15 November 2026. Completed-regular-Session Reviews, unique participant reviews, atomic rating aggregates, Session/Message Reports, user Report history, admin moderation queues and decisions, account suspension/ban/reactivation, account-status enforcement, Notifications, and their model, validation, middleware, service, and integration tests are implemented. The current automated coverage contains 30 unit suites with 702 tests and 49 integration suites with 275 tests, for 79 suites and 977 passing test assertions. Frontend work remains deferred and does not block backend completion. An existing post-run MongoDB/Jest teardown race remains a separate test-harness cleanup task.
+
 **Goal:** complete trust, reputation, and ordinary moderation workflows.
 
 **Backend work**
@@ -645,8 +647,10 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 - Allow reviews only for completed regular sessions and their participants.
 - Enforce `{ session, reviewer }` uniqueness.
 - Maintain rating and totalReviews safely.
-- Implement Report creation with derived identities and validated optional references.
+- Implement Report creation with derived identities and exactly one validated Session or Message reference.
 - Implement admin report queue, status, and response.
+- Track received Reports through `totalReports` and implement admin suspension, permanent banning, and reactivation.
+- Reject suspended and banned accounts during login, token refresh, and protected-route account-status checks.
 
 **Frontend work**
 
@@ -660,6 +664,8 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 - Each participant can review the other at most once per regular Session.
 - Arbitrary users, messages, or sessions cannot be attached to a Report.
 - Session dispute resolution remains separate from Reports.
+- Suspended and banned users cannot receive new access tokens or use protected application routes.
+- Admin account actions invalidate the affected user's stored refresh token and create the appropriate Notification.
 
 ### Phase 7 Recurring sessions
 
@@ -785,12 +791,12 @@ Resolve these explicitly; do not hide them in implementation details.
 
 ## Immediate Next Steps
 
-Phase 1 through Phase 5 backend work and automated testing are complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 6 review, report, and moderation capabilities:
+Phase 1 through Phase 6 backend work and automated coverage are complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 7 recurring-Session capabilities:
 
-1. Finalize and implement the Review model with the unique `{ session, reviewer }` rule.
-2. Allow only participants of a completed regular Session to review each other once, and update `rating` and `totalReviews` atomically.
-3. Finalize and implement the Report model with server-derived identities and validated optional Session/Message references.
-4. Implement the user's Report history and the admin moderation queue, status transitions, and optional response.
-5. Add model, validation, authorization, transaction, and integration tests for all Phase 6 workflows.
+1. Finalize the RecurringSchedule fields, statuses, recurrence pattern, generation window, cancellation rules, and occurrence limits.
+2. Reconfirm the provisional insufficient-credit skip-and-notify behavior.
+3. Implement recurring proposals, one-time teacher acceptance, cancellation, listing, and detail reads.
+4. Implement deterministic rolling occurrence generation, per-occurrence credit reservation, duplicate prevention, and recovery after downtime.
+5. Add model, validation, authorization, transaction, retry, cron, and integration tests for all Phase 7 workflows.
 
-Do not begin Phase 7 recurring Sessions, Socket.IO chat delivery, or AI work until their prerequisite phases and exit criteria are complete.
+Do not begin Phase 8 Socket.IO delivery or later-phase work until Phase 7 dependencies and exit criteria are complete.

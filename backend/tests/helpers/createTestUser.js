@@ -8,6 +8,7 @@ import Message from "../../src/models/message.model.js"
 import Session from "../../src/models/session.model.js"
 import CreditTransaction from "../../src/models/creditTransaction.model.js"
 import Review from "../../src/models/review.model.js"
+import Report from "../../src/models/report.model.js"
 import {
     ACCOUNT_TYPES,
     COMPLETION_METHODS,
@@ -19,6 +20,7 @@ import {
     SKILL_REQUEST_STATUSES,
     MATCH_STATUSES,
     NOTIFICATION_TYPES,
+    REPORT_STATUSES,
     SESSION_DURATIONS,
     SESSION_STATUSES,
     SESSION_TYPES,
@@ -283,6 +285,24 @@ const createTestReview = async (
     return review
 }
 
+const createTestReport = async (
+    reportedById,
+    reportedUserId,
+    reference,
+    overrides = {}
+) => {
+    const report = await Report.create({
+        reportedBy: reportedById,
+        reportedUser: reportedUserId,
+        reason: "Report created for integration testing",
+        status: REPORT_STATUSES.PENDING,
+        ...reference,
+        ...overrides
+    })
+
+    return report
+}
+
 export {
     createTestLearner,
     createTestTeacher,
@@ -295,5 +315,6 @@ export {
     createTestMessage,
     createTestSession,
     createTestCreditTransaction,
-    createTestReview
+    createTestReview,
+    createTestReport
 }

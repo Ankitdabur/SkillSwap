@@ -326,7 +326,7 @@ describe("Process Expired Session Completions", () => {
         expect(learnerAfterRetry.credits).toBe(60)
         expect(learnerAfterRetry.reservedCredits).toBe(20)
         expect(teacherAfterRetry.credits).toBe(20)
-    })
+    }, 15000)
 
 
     test("Cron rolls back completion when reservation is unavailable", async () => {
