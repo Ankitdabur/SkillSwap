@@ -12,9 +12,10 @@ The safest implementation sequence is:
 4. add connections and REST messaging;
 5. implement booking and session state transitions;
 6. implement credit reservation, completion, and admin resolution;
-7. add reviews, reports, recurring sessions, and real-time chat delivery;
-8. add AI features only after the underlying services are stable;
-9. harden, observe, and deploy the complete system.
+7. add reviews, reports, and moderation;
+8. add real-time chat delivery;
+9. add AI features only after the underlying services are stable;
+10. harden, observe, and deploy the complete system.
 
 Do not build every module at once. Each phase below has dependencies and exit criteria so it can be completed and tested before the next phase begins.
 
@@ -41,6 +42,7 @@ The system is a peer-to-peer learning platform. Teaching earns credits and learn
 - AI: an external AI service may support teacher discovery, learning guidance, and chat summaries.
 - Not included initially: Redis, BullMQ, automatic meeting creation, built-in video calls, and email notifications.
 - Future scope: use the Google Calendar API to automatically create and provide a meeting link 24 hours before every Session; until then, Session meeting links remain manually supplied.
+- Future-version scope: implement RecurringSchedule and recurring Session generation only in a later version of SkillSwap; the current version supports manual one-time Sessions only.
 - Current frontend status: backend-only development with API testing in Postman; frontend framework and build-tool selection are deferred until frontend development starts and do not block Phase 1.
 - Environment/configuration: use `.env`, load it with `dotenv`, and access values directly through `process.env`; no centralized config-wrapper abstraction is required, and the database name may remain separately defined through the project's constants approach.
 - Development and testing use the same database for now; do not introduce separate `.env.test` or test-database architecture at this stage.
@@ -139,6 +141,7 @@ Within a backend module, use a consistent direction such as route -> controller 
 - `accountType` controls product capabilities: `TEACHER`, `TEACHER_LEARNER`, or `LEARNER`.
 - Use both JWT access and refresh tokens. Return the access token to the client, send it on protected requests as `Authorization: Bearer <accessToken>`, and do not store it as a server-managed authentication cookie.
 - Store the raw refresh token only in an HttpOnly cookie, never return it in an API response body, and store only its hash in the database. Rotate it after a successful `/refresh`; successful rotation invalidates the old refresh token.
+- When a protected request returns `ACCOUNT_SUSPENDED` or `ACCOUNT_BANNED`, the frontend must clear its stored access token and authentication state, then redirect the user to the login page.
 - Account-type permissions must be checked on the backend for every teaching or learning action.
 - Never trust user IDs, ownership, reporting identities, prices, balances, or state supplied by the client without deriving or validating them against authenticated data.
 - A user must have an `ACCEPTED` Match with the other participant before normal chat or session booking is allowed.
@@ -146,7 +149,7 @@ Within a backend module, use a consistent direction such as route -> controller 
 ### Consistency and concurrency
 
 - Use MongoDB transactions for multi-document balance changes and other related writes that must succeed or fail together.
-- Make credit transfer, recurring generation, timeout processing, and deletion of an AI conversation idempotent.
+- Make credit transfer, timeout processing, and deletion of an AI conversation idempotent. Future recurring generation must also be idempotent when implemented.
 - Back idempotency with database indexes or state predicates, not only in-memory checks.
 - Use atomic conditional updates for state transitions. A transition should include the expected current status in its update filter.
 - Keep cron jobs stateless. A restarted application must recover work from MongoDB without creating duplicate sessions or transfers.
@@ -213,9 +216,9 @@ The architecture contains exactly 14 collections. Do not add another collection 
 | 3 | SkillRequest | User requests for missing skills to be considered for admin-approved catalog additions |
 | 4 | Match | Connection request and relationship state between two users |
 | 5 | Availability | A user's shared weekly availability for their permitted teaching and/or learning activities |
-| 6 | Session | Regular and demo bookings, completion state, pricing, and recurring occurrences |
+| 6 | Session | Regular and demo bookings, completion state, and pricing; recurring occurrences are future-version scope |
 | 7 | CreditTransaction | Auditable credit movements |
-| 8 | RecurringSchedule | Accepted recurring arrangement and occurrence template |
+| 8 | RecurringSchedule | Future-version accepted recurring arrangement and occurrence template |
 | 9 | Message | Normal user chat and explicitly shared AI summaries |
 | 10 | AIConversation | A user's persistent AI conversation metadata |
 | 11 | AIMessage | Individual user and assistant messages in an AI conversation |
@@ -236,7 +239,7 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 - `Skill.category` is a required predefined `SKILL_CATEGORIES` enum value. The categories remain hardcoded backend enum/constants; they are not seeded into MongoDB and do not create a Category collection.
 - `Message.messageType` supports `TEXT`, `AI_SUMMARY`, and `ADMIN_REVIEW`, defaulting to `TEXT`. A Message may contain text, one HTTPS `imageUrl`, or both; at least one is required.
 - `Session.sessionType` supports `REGULAR` and `DEMO`, defaulting to `REGULAR`.
-- `RecurringSchedule.credits` stores the agreed credits per generated occurrence.
+- Future version: `RecurringSchedule.credits` stores the agreed credits per generated occurrence.
 - A Session can have multiple Reviews, but only one per reviewer. Enforce a unique compound index on `{ session, reviewer }`.
 - A CreditTransaction contains `user`, nullable `session`, signed non-zero whole-number `amount`, `type`, `status`, and `description`, plus MongoDB/Mongoose-generated `_id`, `createdAt`, and `updatedAt` fields. Types are `SESSION_PAYMENT`, `ADMIN_BONUS`, and `ADMIN_ADJUSTMENT`; statuses are `PENDING`, `COMPLETED`, and `CANCELLED`.
 - `CreditTransaction.session` is required for `SESSION_PAYMENT` and null for `ADMIN_BONUS` or `ADMIN_ADJUSTMENT`. Each regular-session payment uses one signed row per participant: the learner row is negative and the teacher row is positive. Both rows begin `PENDING`, become `COMPLETED` when credits transfer, and become `CANCELLED` if the reservation is released without completion.
@@ -252,8 +255,8 @@ Choose and configure the physical MongoDB collection names explicitly before mig
 - Availability records belong to one User and form that user's mandatory single shared weekly schedule, which is first collected during registration and may be updated later. Store the schedule in the Availability collection rather than duplicating availability fields on User. A `TEACHER_LEARNER` uses the same schedule for both teaching and learning; do not add separate teaching/learning schedules.
 - A Match connects two users and is independent of skill.
 - A Match controls whether two users are currently permitted to create a Session, but Sessions do not store a Match reference.
-- A Session references its teacher, learner, and Skill; it may also reference one RecurringSchedule. When a Session is created, query the Match collection and require an `ACCEPTED` Match between the teacher and learner, but do not copy the Match `_id` into the Session document.
-- A RecurringSchedule creates many separate Session documents.
+- A Session references its teacher, learner, and Skill. The existing optional `recurringSchedule` field remains null for every current-version Session and is reserved for future-version recurring generation. When a Session is created, query the Match collection and require an `ACCEPTED` Match between the teacher and learner, but do not copy the Match `_id` into the Session document.
+- Future version: a RecurringSchedule creates many separate Session documents.
 - A Session can have at most two Reviews: one from each participant.
 - A Message directly references its sender and receiver. It does not create a separate conversation collection.
 - An AIConversation belongs to one User and contains many AIMessages.
@@ -268,9 +271,9 @@ Finalize enum values and query shapes before migration, then create indexes for 
 - SkillRequest: status and creation time; requestedBy and creation time.
 - Match: unique `pairKey`; `{ sender, status, createdAt }`; and `{ receiver, status, createdAt }`. A normal unique `pairKey` index is sufficient because rejected, cancelled, removed, and unblocked Matches are deleted rather than retained as terminal documents.
 - Availability: user and day.
-- Session: participants plus scheduledAt; status plus scheduledAt; recurringSchedule plus scheduledAt; `{ teacher, skill, sessionType, status }` for completed regular-session counts. Do not create a Match-based Session index because Session documents do not store a Match reference.
+- Session: participants plus scheduledAt; status plus scheduledAt; `{ teacher, skill, sessionType, status }` for completed regular-session counts. Defer recurringSchedule plus scheduledAt indexing until recurring Sessions are implemented. Do not create a Match-based Session index because Session documents do not store a Match reference.
 - CreditTransaction: `{ user, createdAt, _id }`; session; and a partial unique `{ session, user, type }` index for `SESSION_PAYMENT` rows so each participant has at most one payment row per Session while repeated administrative transactions with `session: null` remain allowed.
-- RecurringSchedule: status plus date window; teacher; learner.
+- Future version, when implemented: RecurringSchedule status plus date window; teacher; learner.
 - Message: `{ conversationKey, createdAt, _id }` for stable bidirectional conversation history.
 - AIConversation: user plus updatedAt.
 - AIMessage: conversation plus createdAt.
@@ -385,6 +388,8 @@ Only real user actions set `teacherRespondedAt` or `learnerRespondedAt`. Automat
 
 ### Recurring sessions
 
+**Status:** deferred from the current release. RecurringSchedule, recurring APIs, occurrence generation, credit reservation, Notifications, cron processing, frontend UI, and tests will be implemented only in a later version of SkillSwap. The notes below are retained as provisional future-version design and are not current implementation requirements.
+
 - A RecurringSchedule is accepted once by the teacher.
 - Each generated occurrence is a separate, automatically accepted Session.
 - Each generated Session references its RecurringSchedule and inherits the schedule's credits. It does not store a Match reference.
@@ -439,7 +444,7 @@ Use a versioned prefix such as `/api/v1`. Final endpoint names can change, but t
 | Sessions | request, accept/reject, cancel, list/detail, confirmations, dispute |
 | Admin sessions | review queue, optional evidence chat, final resolution |
 | Credits | balance view and paginated transaction history |
-| Recurring | propose, accept/reject, cancel, list/detail |
+| Recurring | Future version only: propose, accept/reject, cancel, list/detail |
 | Messages | conversation history, send, soft-delete, mark read, summarize/share |
 | Reviews | create and list by user/session |
 | Reports | create, list own; admin moderation |
@@ -466,7 +471,7 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 **Decide before the relevant later phase**
 
 - Session price proposal/negotiation API and UI.
-- Recurring generation horizon and provisional insufficient-credit details.
+- Future version: recurring generation horizon and provisional insufficient-credit details.
 - AI provider, model, limits, prompt/data-retention policy, and long-chat summarization strategy.
 
 **Deliverables**
@@ -669,6 +674,8 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 
 ### Phase 7 Recurring sessions
 
+**Status:** deferred to a future version of SkillSwap. Do not implement this phase in the current release. The design below is retained only as future planning material.
+
 **Goal:** generate reliable recurring occurrences using MongoDB as the source of truth.
 
 **Backend work**
@@ -775,10 +782,10 @@ Define an OpenAPI contract as each phase is implemented. The frontend should con
 Use a test pyramid throughout the phases rather than postponing testing.
 
 - **Unit tests:** compatibility calculation, account capabilities, time/conflict calculation, allowed state transitions, spendable balance, and deadline calculation.
-- **Service integration tests:** Match transitions, Session acceptance, cancellation, credit reservation/transfer, recurring generation, reviews, reports, and AI ownership.
+- **Service integration tests:** Match transitions, Session acceptance, cancellation, credit reservation/transfer, reviews, reports, and AI ownership. Add recurring-generation coverage only in the future version that implements it.
 - **Concurrency tests:** simultaneous Match acceptance, Session acceptance, cancellation versus completion, repeated cron runs, and repeated transfer attempts.
 - **API tests:** authentication, validation, authorization, pagination, response shape, and safe field projection.
-- **End-to-end tests:** register -> discover -> connect -> chat -> book -> complete -> review, including admin-review and recurring variants.
+- **End-to-end tests:** register -> discover -> connect -> chat -> book -> complete -> review, including admin-review. Add recurring variants only when recurring Sessions are implemented in a future version.
 
 Each phase should add tests for both allowed behavior and attempts by the wrong user, wrong account type, wrong role, or wrong state.
 
@@ -786,17 +793,17 @@ Each phase should add tests for both allowed behavior and attempts by the wrong 
 
 Resolve these explicitly; do not hide them in implementation details.
 
-1. **Recurring insufficient credits:** the skip-and-notify rule is provisional and must be reconfirmed in Phase 7.
+1. **Future-version recurring insufficient credits:** the skip-and-notify rule remains provisional and must be reconfirmed before recurring Sessions are implemented in a later version.
 2. **AI privacy and cost:** provider, data retention, input limits, rate limits, and consent for long-chat summaries must be decided before Phase 9.
 
 ## Immediate Next Steps
 
-Phase 1 through Phase 6 backend work and automated coverage are complete. Graceful shutdown remains a deliberate Phase 10 hardening task. The next concrete work items are the Phase 7 recurring-Session capabilities:
+Phase 1 through Phase 6 backend work and automated coverage are complete. Phase 7 recurring Sessions are deliberately deferred to a future version and do not block the current release. Graceful shutdown remains a deliberate Phase 10 hardening task. The next current-version work is Phase 8 Socket.IO chat delivery and Notification polling:
 
-1. Finalize the RecurringSchedule fields, statuses, recurrence pattern, generation window, cancellation rules, and occurrence limits.
-2. Reconfirm the provisional insufficient-credit skip-and-notify behavior.
-3. Implement recurring proposals, one-time teacher acceptance, cancellation, listing, and detail reads.
-4. Implement deterministic rolling occurrence generation, per-occurrence credit reservation, duplicate prevention, and recovery after downtime.
-5. Add model, validation, authorization, transaction, retry, cron, and integration tests for all Phase 7 workflows.
+1. Finalize stable pagination snapshot boundaries for real-time lists.
+2. Add authenticated and authorized Socket.IO connections for chat only.
+3. Emit message and read-state events only after MongoDB writes succeed, with REST recovery after reconnects.
+4. Implement periodic REST polling for Notifications without Notification socket events.
+5. Evaluate BullMQ/Redis only for durable asynchronous delivery retries, then add Socket.IO, polling, reconnect, authorization, and integration tests.
 
-Do not begin Phase 8 Socket.IO delivery or later-phase work until Phase 7 dependencies and exit criteria are complete.
+Do not implement RecurringSchedule or recurring Session generation in the current version.
