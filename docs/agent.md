@@ -3,6 +3,7 @@
 ## Sources of Truth
 
 
+
 - Use `docs/architecture.md` as the authority for SkillSwap requirements, architecture, data models, workflows, phase boundaries, and finalized decisions.
 - Use `/Users/ankityadav/Desktop/Backend/Project` only as the reference for the previous backend's coding style and project conventions.
 - When the reference backend conflicts with `docs/architecture.md`, follow `docs/architecture.md`.
